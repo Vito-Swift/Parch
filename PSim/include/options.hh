@@ -1,0 +1,35 @@
+/**
+ * @filename: options.hh
+ * @author: Vito Wu <chenhaowu[at]link.cuhk.edu.cn>
+ * @version: 0.1
+ * @desc:
+ * @date: 2/20/2021
+ */
+
+#ifndef PARCH_OPTIONS_HH
+#define PARCH_OPTIONS_HH
+
+#include <stdint.h>
+#include <cstdio>
+#include <stdlib.h>
+#include <getopt.h>
+#include <string.h>
+#include <time.h>
+#include <stdbool.h>
+
+typedef struct {
+    char *ELF;
+    bool verbose;
+    bool function_only;
+    bool enable_hazard;
+    bool enable_OoOE;
+} Options;
+
+
+void options_init(Options *options);
+
+void options_free(Options *options);
+
+void options_parse(Options *options, int argc, char **argv);
+
+#endif //PARCH_OPTIONS_HH
