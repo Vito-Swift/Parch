@@ -24,7 +24,8 @@ set(SIMLIB_SRCS
         src/psim.cc
         src/utils.cc
         src/register.cc
-        src/mmbar.cc)
+        src/mmbar.cc
+        src/assembler.cc)
 
 set(SIMEXEC_SRCS)
 
