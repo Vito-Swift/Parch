@@ -17,6 +17,8 @@
 #include <time.h>
 #include <stdbool.h>
 
+#include "utils.hh"
+
 typedef struct {
     char *ELF;
     bool verbose;

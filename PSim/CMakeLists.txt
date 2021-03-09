@@ -35,8 +35,11 @@ set(SIMEXEC_SRCS)
 # ========================================================================== #
 
 add_library(SIMLIB ${SIMLIB_SRCS})
-target_include_directories(SIMLIB
-        PRIVATE include)
+target_include_directories(SIMLIB PRIVATE include)
+
+add_executable(ttintegration test/ttintegration.cc)
+target_link_libraries(ttintegration ${SIMLIB})
+target_include_directories(ttintegration PRIVATE include)
 
 
 # ========================================================================== #
