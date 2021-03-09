@@ -21,6 +21,8 @@
 
 typedef struct {
     char *ELF;
+    bool from_elf;
+    bool from_std_in;
     bool verbose;
     bool function_only;
     bool enable_hazard;

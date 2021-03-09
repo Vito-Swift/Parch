@@ -9,7 +9,27 @@
 #include "options.hh"
 
 static void print_usage(char *prg_name) {
+    printf("\n"
+           "Usage: %s [OPTIONS]                \n"
+           "\n"
+           "\n"
+           "Options:                                       \n"
+           "                                               \n"
+           "  --ELF [ELF_PATH] or --from_std_in            \n"
+           "               Use ELF file to launch or       \n"
+           "               read asm from standard input    \n"
+           "               (default to read from stdin)    \n"
+           "                                               \n"
+           "  --verbose                                    \n"
+           "               Enable DEBUG logging            \n"
+           "               (default to false)              \n"
+           "                                               \n", prg_name);
+}
 
+static inline void copy_opt(char **str, char *optarg) {
+    if (NULL == ((*str) = strndup(optarg, 1024))) {
+        PRINTF_ERR("[!] invalid input parameter\n");
+    }
 }
 
 enum opt_types {
@@ -31,7 +51,9 @@ static struct option parch_long_opts[] = {
 };
 
 void options_init(Options *options) {
-
+    options->ELF = NULL;
+    options->from_elf = false;
+    options->from_std_in = true;
 }
 
 void options_free(Options *options) {
@@ -52,11 +74,19 @@ void options_parse(Options *options, int argc, char **argv) {
                                  optarg ? optarg : "null");
                 }
                 break;
+
             case 'h':
                 print_usage(argv[0]);
                 options_free(options);
                 exit(0);
 
+            case OP_ELF:
+                copy_opt(&options->ELF, optarg);
+                options->from_std_in = false;
+                break;
+
+            case OP_STDIN:
+                break;
         }
     }
 }
