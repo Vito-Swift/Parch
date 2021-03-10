@@ -17,6 +17,10 @@ void simulator_init(Simulator *simulator, int argc, char **argv) {
                    simulator->user_options.from_elf);
 }
 
+void simulator_exec(Simulator *simulator) {
+    assembler_exec(&simulator->assembler);
+}
+
 void simulator_free(Simulator *simulator) {
     options_free(&simulator->user_options);
 }

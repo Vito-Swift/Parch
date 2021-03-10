@@ -12,13 +12,18 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <sstream>
+#include <regex>
 
 #include "utils.hh"
 #include "options.hh"
+#include "opcode.h"
 
 struct Assembler {
     std::string ELF_path;
-    std::vector<std::string> filein;
+    std::vector<std::string> content;
+    std::vector<std::string> text_section;
+    std::vector<std::string> data_section;
     std::vector<uint32_t> bin;
 };
 

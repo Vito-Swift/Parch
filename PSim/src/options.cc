@@ -68,8 +68,21 @@ void options_free(Options *options) {
 
 }
 
-bool validate_options(Options *options) {
+bool options_validate(Options *options) {
+    if (!(options->from_elf) && !(options->from_std_in)) {
+        EXIT_WITH_MSG("[!] neither ELF and stdin is specified, please specify...\n");
+    }
 
+    if (options->from_elf && options->from_std_in) {
+        EXIT_WITH_MSG("[!] both ELF and stdin are specified, please only choose one mode...\n");
+    }
+
+    if (options->enable_OoOE || options->enable_hazard || options->function_only) {
+        PRINTF_ERR_STAMP("--enable_OoOE or --enable_hazard or --function_only is specified\n");
+        PRINTF_ERR_STAMP("  but PSim does not seem to support these options in this version.\n");
+    }
+
+    return 0;
 }
 
 void options_parse(Options *options, int argc, char **argv) {
@@ -94,6 +107,7 @@ void options_parse(Options *options, int argc, char **argv) {
 
             case OP_ELF:
                 copy_opt(&options->ELF, optarg);
+                options->from_elf = true;
                 break;
 
             case OP_STDIN:

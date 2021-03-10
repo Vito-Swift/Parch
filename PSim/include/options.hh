@@ -21,8 +21,12 @@
 
 typedef struct {
     char *ELF;
+    char* ASM;
     bool from_elf;
     bool from_std_in;
+    bool from_asm;
+    bool full_flow;
+    bool assembly_only;
     bool function_only;
     bool enable_hazard;
     bool enable_OoOE;

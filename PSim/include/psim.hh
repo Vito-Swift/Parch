@@ -19,6 +19,8 @@ struct Simulator {
 
 void simulator_init(Simulator *simulator, int argc, char **argv);
 
+void simulator_exec(Simulator* simulator);
+
 void simulator_free(Simulator *simulator);
 
 #endif //PARCH_PSIM_HH

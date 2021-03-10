@@ -12,6 +12,6 @@ int main(int argc, char** argv) {
     Simulator simulator;
 
     simulator_init(&simulator, argc, argv);
-
+    simulator_exec(&simulator);
     simulator_free(&simulator);
 }
