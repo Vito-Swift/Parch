@@ -23,12 +23,12 @@ typedef struct {
     char *ELF;
     bool from_elf;
     bool from_std_in;
-    bool verbose;
     bool function_only;
     bool enable_hazard;
     bool enable_OoOE;
 } Options;
 
+extern bool verbose;
 
 void options_init(Options *options);
 

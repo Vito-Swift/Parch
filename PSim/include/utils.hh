@@ -67,6 +67,14 @@ double get_timestamp();
 #define PRINTF_DEBUG(...)
 #endif
 
+#ifndef PRINTF_DEBUG_VERBOSE
+#define PRINTF_DEBUG_VERBOSE(verbose, format, ...) \
+    do { \
+        if (verbose) \
+            PRINTF_ERR_STAMP(format, ##__VA_ARGS__); \
+    } while (0)
+#endif
+
 /* print array to stderr if in debug mode */
 #ifndef NDEBUG
 #define PRINT_ARRAY_DEBUG(ele_format, array, size) \
@@ -116,7 +124,7 @@ void *safe_malloc(size_t size);
 
 inline bool isFileExist(const std::string &name) {
     struct stat buffer;
-    return (stat (name.c_str(), &buffer) == 0);
+    return (stat(name.c_str(), &buffer) == 0);
 }
 
 #endif //PARCH_UTILS_HH

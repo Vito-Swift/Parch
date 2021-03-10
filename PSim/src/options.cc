@@ -54,6 +54,7 @@ void options_init(Options *options) {
     options->ELF = NULL;
     options->from_elf = false;
     options->from_std_in = true;
+    verbose = false;
 }
 
 void options_free(Options *options) {
@@ -86,7 +87,13 @@ void options_parse(Options *options, int argc, char **argv) {
                 break;
 
             case OP_STDIN:
+                options->from_std_in = true;
                 break;
+
+            case OP_VERBOSE:
+                verbose = true;
+                break;
+
         }
     }
 }
