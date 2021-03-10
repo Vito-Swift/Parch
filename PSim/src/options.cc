@@ -69,8 +69,12 @@ void options_free(Options *options) {
 }
 
 bool options_validate(Options *options) {
-    if (!(options->from_elf) && !(options->from_std_in)) {
-        EXIT_WITH_MSG("[!] neither ELF and stdin is specified, please specify...\n");
+    if (!(options->from_elf) && !(options->from_std_in) && !(options->from_asm)) {
+        EXIT_WITH_MSG("[!] neither ELF, stdin or asm file is specified, please specify...\n");
+    }
+
+    if ((options->from_elf || options->from_std_in) && options->from_asm) {
+        EXIT_WITH_MSG("[!] cannot read asm and bin simultaneously, exit\n");
     }
 
     if (options->from_elf && options->from_std_in) {
@@ -78,8 +82,24 @@ bool options_validate(Options *options) {
     }
 
     if (options->enable_OoOE || options->enable_hazard || options->function_only) {
-        PRINTF_ERR_STAMP("--enable_OoOE or --enable_hazard or --function_only is specified\n");
+        PRINTF_ERR_STAMP("--enable_OoOE or --enable_hazard is specified\n");
         PRINTF_ERR_STAMP("  but PSim does not seem to support these options in this version.\n");
+    }
+
+    if (options->from_elf) {
+        PRINTF_DEBUG_VERBOSE(verbose, "[OPT]\tOption enabled: read from ELF\n");
+    }
+
+    if (options->from_std_in) {
+        PRINTF_DEBUG_VERBOSE(verbose, "[OPT]\tOption enabled: read from stdin\n");
+    }
+
+    if (options->from_asm) {
+        PRINTF_DEBUG_VERBOSE(verbose, "[OPT]\tOption enabled: read from assembled file\n");
+    }
+
+    if (options->assembly_only) {
+        PRINTF_DEBUG_VERBOSE(verbose, "[OPT]\tOption enabled: only assembling into binary executable\n");
     }
 
     return 0;
@@ -116,6 +136,11 @@ void options_parse(Options *options, int argc, char **argv) {
 
             case OP_VERBOSE:
                 verbose = true;
+                PRINTF_DEBUG_VERBOSE(verbose, "[OPT]\tOption enabled: verbose\n");
+                break;
+
+            case OP_FUNCTION_ONLY:
+                options->function_only = true;
                 break;
 
             case '?':
