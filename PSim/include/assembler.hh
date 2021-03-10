@@ -13,9 +13,8 @@
 #include <vector>
 #include <fstream>
 
-#include "psim.hh"
 #include "utils.hh"
-
+#include "options.hh"
 
 struct Assembler {
     std::string ELF_path;
@@ -23,10 +22,10 @@ struct Assembler {
     std::vector<uint32_t> bin;
 };
 
-void init_assembler(Simulator *simulator, std::string ELF_path);
+void assembler_init(Assembler *assembler, std::string ELF_path, bool loadFromELF);
 
-void exec_assembler(Simulator *as);
+void assembler_exec(Assembler *assembler);
 
-void free_assembler(Assembler *as);
+void assembler_free(Assembler *assembler);
 
 #endif //PARCH_ASSEMBLER_HH

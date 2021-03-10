@@ -8,6 +8,8 @@
 
 #include "options.hh"
 
+bool verbose = false;
+
 static void print_usage(char *prg_name) {
     printf("\n"
            "Usage: %s [OPTIONS]                \n"
@@ -23,7 +25,13 @@ static void print_usage(char *prg_name) {
            "  --verbose                                    \n"
            "               Enable DEBUG logging            \n"
            "               (default to false)              \n"
-           "                                               \n", prg_name);
+           "                                               \n"
+           "                                               \n"
+           "Example:                                       \n"
+           "  ./PSim --ELF test/testfiles/ttsimulator/a-plus-b.asm \n"
+           "        --verbose                              \n"
+           "                                               \n",
+           prg_name);
 }
 
 static inline void copy_opt(char **str, char *optarg) {
@@ -53,11 +61,14 @@ static struct option parch_long_opts[] = {
 void options_init(Options *options) {
     options->ELF = NULL;
     options->from_elf = false;
-    options->from_std_in = true;
-    verbose = false;
+    options->from_std_in = false;
 }
 
 void options_free(Options *options) {
+
+}
+
+bool validate_options(Options *options) {
 
 }
 
@@ -83,7 +94,6 @@ void options_parse(Options *options, int argc, char **argv) {
 
             case OP_ELF:
                 copy_opt(&options->ELF, optarg);
-                options->from_std_in = false;
                 break;
 
             case OP_STDIN:
@@ -94,6 +104,11 @@ void options_parse(Options *options, int argc, char **argv) {
                 verbose = true;
                 break;
 
+            case '?':
+                break;
+
+            default:
+                EXIT_WITH_MSG("[!] unknown error, exit...\n");
         }
     }
 }

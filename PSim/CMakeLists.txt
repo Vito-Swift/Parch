@@ -2,11 +2,10 @@
 # language standard requirements
 # ========================================================================== #
 
-if (NOT DEFINED CMAKE_C_STANDARD)
+if (NOT DEFINED CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 11)
     set(CMAKE_CXX_STANDARD_REQUIRED true)
 endif ()
-
 
 # ========================================================================== #
 # external packages
@@ -38,7 +37,7 @@ add_library(SIMLIB ${SIMLIB_SRCS})
 target_include_directories(SIMLIB PRIVATE include)
 
 add_executable(ttintegration test/ttintegration.cc)
-target_link_libraries(ttintegration ${SIMLIB})
+target_link_libraries(ttintegration SIMLIB)
 target_include_directories(ttintegration PRIVATE include)
 
 

@@ -68,9 +68,9 @@ double get_timestamp();
 #endif
 
 #ifndef PRINTF_DEBUG_VERBOSE
-#define PRINTF_DEBUG_VERBOSE(verbose, format, ...) \
+#define PRINTF_DEBUG_VERBOSE(_verbose, format, ...) \
     do { \
-        if (verbose) \
+        if (_verbose) \
             PRINTF_ERR_STAMP(format, ##__VA_ARGS__); \
     } while (0)
 #endif
