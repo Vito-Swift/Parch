@@ -42,8 +42,10 @@ bool __assembler_exec(Assembler *assembler) {
     bool inText = false, inData = false;
     for (std::string line: assembler->content) {
         // remove leading and trailing spaces
-        line = std::regex_replace(line, std::regex("^ +"), "");
-        line = std::regex_replace(line, std::regex(" +$"), "");
+        line = std::regex_replace(line, std::regex("^[ \t]+"), "");
+        printf("%s\n", line.c_str());
+        line = std::regex_replace(line, std::regex("[ \t]+$"), "");
+        printf("%s\n", line.c_str());
 
         switch (hash(line.c_str())) {
 
@@ -57,6 +59,7 @@ bool __assembler_exec(Assembler *assembler) {
                 PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t\t[DD]\t\t%s\n", line.c_str());
                 inText = false;
                 inData = true;
+                break;
 
             default:
                 break;
