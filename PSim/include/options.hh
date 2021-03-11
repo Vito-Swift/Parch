@@ -21,7 +21,7 @@
 
 typedef struct {
     char *ELF;
-    char* ASM;
+    char *ASM;
     bool from_elf;
     bool from_std_in;
     bool from_asm;

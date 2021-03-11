@@ -60,6 +60,7 @@ bool __assembler_exec(Assembler *assembler) {
 
             default:
                 break;
+
         }
 
         if (inText) {

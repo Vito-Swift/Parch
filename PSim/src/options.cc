@@ -22,6 +22,14 @@ static void print_usage(char *prg_name) {
            "               read asm from standard input    \n"
            "               (default to read from stdin)    \n"
            "                                               \n"
+           "    or --ASM [ASM_PATH]                        \n"
+           "               Execute assembled binary        \n"
+           "                                               \n"
+           "  --full_flow                                  \n"
+           "               If ELF file is specified, proceed\n"
+           "               the assembling and execution in \n"
+           "               one step                        \n"
+           "                                               \n"
            "  --verbose                                    \n"
            "               Enable DEBUG logging            \n"
            "               (default to false)              \n"
@@ -46,7 +54,8 @@ enum opt_types {
     OP_FUNCTION_ONLY,
     OP_HAZARD,
     OP_OOOE,
-    OP_STDIN
+    OP_STDIN,
+    OP_FULL_FLOW,
 };
 
 static struct option parch_long_opts[] = {
@@ -55,7 +64,8 @@ static struct option parch_long_opts[] = {
         {"function_only", no_argument,       0, OP_FUNCTION_ONLY},
         {"hazard_sim",    no_argument,       0, OP_HAZARD},
         {"OoOE_sim",      no_argument,       0, OP_OOOE},
-        {"from_std_in",   no_argument,       0, OP_STDIN}
+        {"from_std_in",   no_argument,       0, OP_STDIN},
+        {"full_flow",     no_argument,       0, OP_FULL_FLOW},
 };
 
 void options_init(Options *options) {
@@ -69,6 +79,8 @@ void options_free(Options *options) {
 }
 
 bool options_validate(Options *options) {
+    PRINTF_DEBUG_VERBOSE(verbose, "validate");
+
     if (!(options->from_elf) && !(options->from_std_in) && !(options->from_asm)) {
         EXIT_WITH_MSG("[!] neither ELF, stdin or asm file is specified, please specify...\n");
     }
@@ -141,6 +153,10 @@ void options_parse(Options *options, int argc, char **argv) {
 
             case OP_FUNCTION_ONLY:
                 options->function_only = true;
+                break;
+
+            case OP_FULL_FLOW:
+                options->full_flow = true;
                 break;
 
             case '?':
