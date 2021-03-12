@@ -8,15 +8,9 @@
 
 #include "assembler.hh"
 
-uint32_t __encode_rtype(const tokens_t &tokens) {
-}
-
-uint32_t __encode_jtype(const tokens_t &tokens) {
-
-}
-
-uint32_t __encode_itype(const tokens_t &tokens) {
-
+bool isLineALabel(const std::string &line) {
+    std::regex e("(.*):$");
+    return std::regex_match(line, e);
 }
 
 tokens_t tokenize_str(const std::string &line) {
@@ -38,14 +32,52 @@ tokens_t tokenize_str(const std::string &line) {
     return tokens;
 }
 
-bool encode(const tokens_t &tokens, uint32_t* bin) {
+uint32_t __encode_reg(const token_t &reg_str) {
+    token_t reg_key = reg_str;
+    reg_key.erase(std::remove(reg_key.begin(), reg_key.end(), '$'), reg_key.end());
+    return reg_map[reg_key];
+}
+
+uint32_t __encode_rtype(const tokens_t &tokens,
+                        const uint32_t opcode,
+                        const uint32_t shamt,
+                        const uint32_t funct) {
+    uint32_t rs = __encode_reg(tokens[1]);
+    uint32_t rt = __encode_reg(tokens[2]);
+    uint32_t rd = __encode_reg(tokens[3]);
+
+    return (opcode << 26) |
+           (rs << 21) |
+           (rt << 16) |
+           (rd << 11) |
+           (shamt << 6) |
+           funct;
+}
+
+uint32_t __encode_jtype(const tokens_t &tokens, const uint32_t opcode) {
+    return 0;
+}
+
+uint32_t __encode_itype(const tokens_t &tokens, const uint32_t opcode, const uint32_t immediate) {
+    uint32_t rs = __encode_reg(tokens[1]);
+    uint32_t rt = __encode_reg(tokens[2]);
+
+    return (opcode << 26) |
+           (rs << 21) |
+           (rt << 16) |
+           immediate;
+}
+
+bool encode(const tokens_t &tokens, uint32_t *bin) {
     token_t opcode_string = tokens[0];
     switch (hash(opcode_string.c_str())) {
 
         case hash("add"):
+            *bin = __encode_rtype(tokens, 0x0, 0x0, 0x20);
             break;
 
         case hash("addu"):
+            *bin = __encode_rtype(tokens, 0x0, 0x0, 0x21);
             break;
 
         case hash("addi"):
@@ -72,18 +104,117 @@ bool encode(const tokens_t &tokens, uint32_t* bin) {
         case hash("divu"):
             break;
 
+        case hash("mult"):
+            break;
+
+        case hash("madd"):
+            break;
+
+        case hash("msub"):
+            break;
+
+        case hash("maddu"):
+            break;
+
+        case hash("msubu"):
+            break;
+
+        case hash("nor"):
+            break;
+
+        case hash("or"):
+            break;
+
+        case hash("ori"):
+            break;
+
+        case hash("sll"):
+            break;
+
+        case hash("sllv"):
+            break;
+
+        case hash("sra"):
+            break;
+
+        case hash("srav"):
+            break;
+
+        case hash("srl"):
+            break;
+
+        case hash("srlv"):
+            break;
+
+        case hash("sub"):
+            break;
+
+        case hash("subu"):
+            break;
+
+        case hash("xor"):
+            break;
+
+        case hash("xori"):
+            break;
+
+        case hash("lui"):
+            break;
+
+        case hash("slt"):
+            break;
+
+        case hash("sltu"):
+            break;
+
+        case hash("slti"):
+            break;
+
+        case hash("sltiu"):
+            break;
+
+        case hash("beq"):
+            break;
+
+        case hash("bgez"):
+            break;
+
+        case hash("bgezal"):
+            break;
+
+        case hash("bgtz"):
+            break;
+
+        case hash("blez"):
+            break;
+
+        case hash("bltzal"):
+            break;
+
+        case hash("bltz"):
+            break;
+
+        case hash("bne"):
+            break;
+
+        case hash("j"):
+            break;
+
+        case hash("jal"):
+            break;
+
+        case hash("jalr"):
+            break;
+
+        case hash("jr"):
+            break;
+
         default:
             return 0;
 
     }
 
     return 1;
-}
-
-
-bool isLineALabel(const std::string &line) {
-    std::regex e("(.*):$");
-    return std::regex_match(line, e);
 }
 
 bool __assembler_exec(Assembler *assembler) {
@@ -178,4 +309,7 @@ void assembler_init(Assembler *assembler, std::string ELF_path, bool loadFromELF
     } else {
 
     }
+
+    PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\tInitialize register map\n");
+    reg_map = create_regparse_map();
 }

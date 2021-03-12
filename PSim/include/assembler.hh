@@ -40,5 +40,6 @@ void assembler_free(Assembler *assembler);
 
 typedef std::vector<std::string> tokens_t;
 typedef std::string token_t;
+std::map<std::string, uint32_t> reg_map;
 
 #endif //PARCH_ASSEMBLER_HH
