@@ -74,6 +74,7 @@ bool encode(const tokens_t &tokens, uint32_t* bin) {
 
         default:
             return 0;
+
     }
 
     return 1;
