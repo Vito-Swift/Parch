@@ -30,6 +30,7 @@ inline std::map<std::string, uint32_t> create_regparse_map() {
     std::map<std::string, uint32_t> rgm;
     rgm["zero"] = zero;
     rgm["at"] = at;
+    rgm["v0"] = v0, rgm["v1"] = v1;
     rgm["a0"] = a0, rgm["a1"] = a1, rgm["a2"] = a2, rgm["a3"] = a3;
     rgm["t0"] = t0, rgm["t1"] = t1, rgm["t2"] = t2, rgm["t3"] = t3, rgm["t4"] = t4, rgm["t5"] = t5;
     rgm["t6"] = t6, rgm["t7"] = t7, rgm["t8"] = t8, rgm["t9"] = t9;

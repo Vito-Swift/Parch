@@ -58,9 +58,10 @@ uint32_t __encode_jtype(const tokens_t &tokens, const uint32_t opcode) {
     return 0;
 }
 
-uint32_t __encode_itype(const tokens_t &tokens, const uint32_t opcode, const uint32_t immediate) {
+uint32_t __encode_itype(const tokens_t &tokens, const uint32_t opcode) {
     uint32_t rs = __encode_reg(tokens[1]);
     uint32_t rt = __encode_reg(tokens[2]);
+    uint32_t immediate = std::stoi(tokens[3]);
 
     return (opcode << 26) |
            (rs << 21) |
@@ -68,7 +69,7 @@ uint32_t __encode_itype(const tokens_t &tokens, const uint32_t opcode, const uin
            immediate;
 }
 
-bool encode(const tokens_t &tokens, uint32_t *bin) {
+bool encode(Assembler *assembler, const tokens_t &tokens, uint32_t *bin) {
     token_t opcode_string = tokens[0];
     switch (hash(opcode_string.c_str())) {
 
@@ -81,18 +82,23 @@ bool encode(const tokens_t &tokens, uint32_t *bin) {
             break;
 
         case hash("addi"):
+            *bin = __encode_itype(tokens, 0x8);
             break;
 
         case hash("addiu"):
+            *bin = __encode_itype(tokens, 0x9);
             break;
 
         case hash("and"):
+            *bin = __encode_rtype(tokens, 0x0, 0x0, 0x24);
             break;
 
         case hash("andi"):
+            *bin = __encode_itype(tokens, 0xc);
             break;
 
         case hash("clo"):
+            *bin = __encode_rtype(tokens, 0x1c, 0x0, 0x21);
             break;
 
         case hash("clz"):
@@ -209,6 +215,99 @@ bool encode(const tokens_t &tokens, uint32_t *bin) {
         case hash("jr"):
             break;
 
+        case hash("teq"):
+            break;
+
+        case hash("teqi"):
+            break;
+
+        case hash("tne"):
+            break;
+
+        case hash("tnei"):
+            break;
+
+        case hash("tge"):
+            break;
+
+        case hash("tgeu"):
+            break;
+
+        case hash("tgei"):
+            break;
+
+        case hash("tgeiu"):
+            break;
+
+        case hash("tlt"):
+            break;
+
+        case hash("tltu"):
+            break;
+
+        case hash("tlti"):
+            break;
+
+        case hash("tltiu"):
+            break;
+
+        case hash("lb"):
+            break;
+
+        case hash("lbu"):
+            break;
+
+        case hash("lh"):
+            break;
+
+        case hash("lhu"):
+            break;
+
+        case hash("lw"):
+            break;
+
+        case hash("lwl"):
+            break;
+
+        case hash("lwr"):
+            break;
+
+        case hash("ll"):
+            break;
+
+        case hash("sb"):
+            break;
+
+        case hash("sh"):
+            break;
+
+        case hash("sw"):
+            break;
+
+        case hash("swl"):
+            break;
+
+        case hash("swr"):
+            break;
+
+        case hash("sc"):
+            break;
+
+        case hash("mfhi"):
+            break;
+
+        case hash("mflo"):
+            break;
+
+        case hash("mthi"):
+            break;
+
+        case hash("mtlo"):
+            break;
+
+        case hash("syscall"):
+            break;
+
         default:
             return 0;
 
@@ -247,14 +346,13 @@ bool __assembler_exec(Assembler *assembler) {
             if (isLineALabel(line)) {
                 std::string label = line.substr(0, line.find(":"));
                 PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[LABEL]\t\t%s\n", label.c_str());
-
                 // do something here
 
             } else {
                 tokens_t tokens = tokenize_str(line);
                 uint32_t bin_line;
 
-                if (!encode(tokens, &bin_line)) {
+                if (!encode(assembler, tokens, &bin_line)) {
                     return 0;
                 }
             }
