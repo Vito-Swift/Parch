@@ -127,4 +127,8 @@ inline bool isFileExist(const std::string &name) {
     return (stat(name.c_str(), &buffer) == 0);
 }
 
+inline constexpr unsigned int hash(const char *s, int off = 0) {
+    return !s[off] ? 5381 : (hash(s, off + 1) * 33) ^ s[off];
+}
+
 #endif //PARCH_UTILS_HH

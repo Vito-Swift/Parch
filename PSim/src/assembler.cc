@@ -8,34 +8,81 @@
 
 #include "assembler.hh"
 
-constexpr unsigned int hash(const char *s, int off = 0) {
-    return !s[off] ? 5381 : (hash(s, off + 1) * 33) ^ s[off];
+uint32_t __encode_rtype(const tokens_t &tokens) {
 }
 
-uint32_t encode_rtype(uint32_t opcode,
-                      uint32_t rs,
-                      uint32_t rt,
-                      uint32_t rd,
-                      uint32_t shamt,
-                      uint32_t funct) {
-    return (opcode << 26) |
-           (rs << 21) |
-           (rt << 16) |
-           (rd << 11) |
-           (shamt << 6) |
-           funct;
-}
-
-uint32_t encode_jtype(uint8_t opcode,
-                      uint8_t rs,
-                      uint8_t rt,
-                      uint16_t imme) {
+uint32_t __encode_jtype(const tokens_t &tokens) {
 
 }
 
-uint32_t encode_itype(uint8_t opcode,
-                      uint32_t addr) {
+uint32_t __encode_itype(const tokens_t &tokens) {
 
+}
+
+tokens_t tokenize_str(const std::string &line) {
+    char delimiters[] = "\t ,";
+    char *token;
+
+    uint32_t n = line.length();
+    char line_str[n + 1];
+    strcpy(line_str, line.c_str());
+
+    token = strtok(line_str, delimiters);
+    tokens_t tokens;
+
+    while (token != NULL) {
+        tokens.push_back(token_t(token));
+        token = strtok(NULL, delimiters);
+    }
+
+    return tokens;
+}
+
+bool encode(const tokens_t &tokens, uint32_t* bin) {
+    token_t opcode_string = tokens[0];
+    switch (hash(opcode_string.c_str())) {
+
+        case hash("add"):
+            break;
+
+        case hash("addu"):
+            break;
+
+        case hash("addi"):
+            break;
+
+        case hash("addiu"):
+            break;
+
+        case hash("and"):
+            break;
+
+        case hash("andi"):
+            break;
+
+        case hash("clo"):
+            break;
+
+        case hash("clz"):
+            break;
+
+        case hash("div"):
+            break;
+
+        case hash("divu"):
+            break;
+
+        default:
+            return 0;
+    }
+
+    return 1;
+}
+
+
+bool isLineALabel(const std::string &line) {
+    std::regex e("(.*):$");
+    return std::regex_match(line, e);
 }
 
 bool __assembler_exec(Assembler *assembler) {
@@ -43,20 +90,18 @@ bool __assembler_exec(Assembler *assembler) {
     for (std::string line: assembler->content) {
         // remove leading and trailing spaces
         line = std::regex_replace(line, std::regex("^[ \t]+"), "");
-        printf("%s\n", line.c_str());
         line = std::regex_replace(line, std::regex("[ \t]+$"), "");
-        printf("%s\n", line.c_str());
 
         switch (hash(line.c_str())) {
 
             case hash(".text"):
-                PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t\t[DT]\t\t%s\n", line.c_str());
+                PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[DT]\t\t%s\n", line.c_str());
                 inText = true;
                 inData = false;
                 break;
 
             case hash(".data"):
-                PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t\t[DD]\t\t%s\n", line.c_str());
+                PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[DD]\t\t%s\n", line.c_str());
                 inText = false;
                 inData = true;
                 break;
@@ -67,7 +112,20 @@ bool __assembler_exec(Assembler *assembler) {
         }
 
         if (inText) {
-            std::string opstring = line.substr(0, line.find(' '));
+            if (isLineALabel(line)) {
+                std::string label = line.substr(0, line.find(":"));
+                PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[LABEL]\t\t%s\n", label.c_str());
+
+                // do something here
+
+            } else {
+                tokens_t tokens = tokenize_str(line);
+                uint32_t bin_line;
+
+                if (!encode(tokens, &bin_line)) {
+                    return 0;
+                }
+            }
         }
 
         if (inData) {

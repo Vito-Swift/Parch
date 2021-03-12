@@ -14,10 +14,14 @@
 #include <fstream>
 #include <sstream>
 #include <regex>
+#include <string.h>
+#include <map>
+#include <bitset>
 
 #include "utils.hh"
 #include "options.hh"
 #include "opcode.h"
+#include "register.hh"
 
 struct Assembler {
     std::string ELF_path;
@@ -25,6 +29,7 @@ struct Assembler {
     std::vector<std::string> text_section;
     std::vector<std::string> data_section;
     std::vector<uint32_t> bin;
+    std::map<std::string, uint32_t> label_map;
 };
 
 void assembler_init(Assembler *assembler, std::string ELF_path, bool loadFromELF);
@@ -32,5 +37,8 @@ void assembler_init(Assembler *assembler, std::string ELF_path, bool loadFromELF
 void assembler_exec(Assembler *assembler);
 
 void assembler_free(Assembler *assembler);
+
+typedef std::vector<std::string> tokens_t;
+typedef std::string token_t;
 
 #endif //PARCH_ASSEMBLER_HH
