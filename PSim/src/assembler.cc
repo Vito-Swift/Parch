@@ -7,6 +7,7 @@
  */
 
 #include "assembler.hh"
+#include <iostream>
 
 std::map<std::string, uint32_t> reg_map;
 
@@ -15,9 +16,17 @@ bool isLineALabel(const std::string &line) {
     return std::regex_match(line, e);
 }
 
-void removeComments(std::string &line) {
-    std::regex e("#/.*?\n");
-    line = std::regex_replace(line, e, "");
+std::string removeComments(const std::string &line) {
+    std::string ret = line.substr(0, line.find("#"));
+    return ret;
+}
+
+bool isLineEmpty(const std::string &line) {
+    for (uint32_t index = 0; index < line.length(); index++) {
+        if (!std::isspace(line[index]))
+            return false;
+    }
+    return true;
 }
 
 tokens_t tokenize_str(const std::string &line) {
@@ -64,7 +73,7 @@ uint32_t __encode_rtype(const tokens_t &tokens,
                    (rd << 11) | (shamt << 6) | funct;
     PRINTF_DEBUG_VERBOSE(verbose,
                          "[ASM]\t[ENCODE]\tInstruction: %s  %s,%s,%s [%d]"
-                         "\t----->\t%s\n",
+                         "\t\t----->\t\t%s\n",
                          tokens[0].c_str(),
                          tokens[1].c_str(),
                          tokens[2].c_str(),
@@ -76,7 +85,21 @@ uint32_t __encode_rtype(const tokens_t &tokens,
 }
 
 uint32_t __encode_jtype(const tokens_t &tokens, const uint32_t opcode) {
-    return 0;
+    // Encode format:
+    // 0                   1                   2                   3
+    // 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //|   opcode  |                      address                      |
+    //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    uint32_t address = std::stoi(tokens[1]);
+    uint32_t bin = (opcode << 26) | address;
+    PRINTF_DEBUG_VERBOSE(verbose,
+                         "[ASM]\t[ENCODE]\tInstruction: %s  %s"
+                         "\t\t----->\t\t%s\n",
+                         tokens[0].c_str(),
+                         tokens[1].c_str(),
+                         std::bitset<32>(bin).to_string().c_str());
+    return bin;
 }
 
 uint32_t __encode_itype(const tokens_t &tokens, const uint32_t opcode) {
@@ -94,7 +117,7 @@ uint32_t __encode_itype(const tokens_t &tokens, const uint32_t opcode) {
     uint32_t bin = (opcode << 26) | (rs << 21) | (rt << 16) | immediate;
     PRINTF_DEBUG_VERBOSE(verbose,
                          "[ASM]\t[ENCODE]\tInstruction: %s  %s,%s"
-                         "\t----->\t%s\n",
+                         "\t\t----->\t\t%s\n",
                          tokens[0].c_str(),
                          tokens[1].c_str(),
                          tokens[2].c_str(),
@@ -107,12 +130,12 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t *poi
     switch (hash(opcode_string.c_str())) {
 
         case hash("add"):
-            tokens.push_back(0x0);
+            tokens.push_back("0x0");
             *bin = __encode_rtype(tokens, 0x0, 0x20);
             break;
 
         case hash("addu"):
-            tokens.push_back(0x0);
+            tokens.push_back("0x0");
             *bin = __encode_rtype(tokens, 0x0, 0x21);
             break;
 
@@ -125,7 +148,7 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t *poi
             break;
 
         case hash("and"):
-            tokens.push_back(0x0);
+            tokens.push_back("0x0");
             *bin = __encode_rtype(tokens, 0x0, 0x24);
             break;
 
@@ -134,12 +157,12 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t *poi
             break;
 
         case hash("clo"):
-            tokens.push_back(0x0);
+            tokens.push_back("0x0");
             *bin = __encode_rtype(tokens, 0x1c, 0x21);
             break;
 
         case hash("clz"):
-            tokens.push_back(0x0);
+            tokens.push_back("0x0");
             *bin = __encode_rtype(tokens, 0x1c, 0x20);
             break;
 
@@ -179,12 +202,12 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t *poi
             break;
 
         case hash("nor"):
-            tokens.push_back(0x0);
+            tokens.push_back("0x0");
             *bin = __encode_rtype(tokens, 0x0, 0x27);
             break;
 
         case hash("or"):
-            tokens.push_back(0x0);
+            tokens.push_back("0x0");
             *bin = __encode_rtype(tokens, 0x0, 0x25);
             break;
 
@@ -262,10 +285,12 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t *poi
             break;
 
         case hash("beq"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x4);
             break;
 
         case hash("bgez"):
+            tokens.insert(tokens.begin() + 2, "0x1");
+            *bin = __encode_itype(tokens, 0x1);
             *bin = 0;
             break;
 
@@ -449,6 +474,10 @@ bool __assembler_exec(Assembler *assembler) {
         // remove leading and trailing spaces
         line = std::regex_replace(line, std::regex("^[ \t]+"), "");
         line = std::regex_replace(line, std::regex("[ \t]+$"), "");
+        line = removeComments(line);
+
+        if (isLineEmpty(line))
+            continue;
 
         switch (hash(line.c_str())) {
 
