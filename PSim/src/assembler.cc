@@ -558,6 +558,7 @@ bool __assembler_exec(Assembler *assembler) {
                 if (!encode(assembler, tokens, &bin_line, &pointat)) {
                     return 0;
                 }
+                assembler->bin.push_back(bin_line);
             }
         }
 

@@ -1,8 +1,13 @@
 include_directories(${GTEST_INCLUDE_DIRS})
 
-add_executable(ttoptions ttoptions.cc)
-target_link_libraries(ttoptions ${GTEST_BOTH_LIBRARIES})
-target_link_libraries(ttoptions ${CMAKE_THREAD_LIBS_INIT})
+file(COPY ${PROJECT_SOURCE_DIR}/PSim/test/testfiles DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-add_test(IntegrateTest ttoptions)
+
+add_executable(ttassembler ttassembler.cc)
+target_link_libraries(ttassembler
+        ${GTEST_BOTH_LIBRARIES}
+        ${SIMLIB}
+        pthread)
+gtest_discover_tests(ttassembler)
+
 enable_testing()
