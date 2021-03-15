@@ -54,6 +54,14 @@ uint32_t __encode_reg(const token_t &reg_str) {
     return reg_map[reg_key];
 }
 
+std::string __encode_label(Assembler *assembler, const token_t &label_str) {
+    if (assembler->label_map.find(label_str) == assembler->label_map.end())
+        EXIT_WITH_MSG("Assembly contains not defined label: %s\n", label_str.c_str());
+    std::stringstream sstream;
+    sstream << std::hex << assembler->label_map[label_str];
+    return sstream.str();
+}
+
 uint32_t __encode_rtype(const tokens_t &tokens,
                         const uint32_t opcode,
                         const uint32_t funct) {
@@ -285,176 +293,215 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t *poi
             break;
 
         case hash("beq"):
+            tokens[3] = __encode_label(assembler, tokens[3]);
             *bin = __encode_itype(tokens, 0x4);
             break;
 
         case hash("bgez"):
             tokens.insert(tokens.begin() + 2, "0x1");
+            tokens[3] = __encode_label(assembler, tokens[3]);
             *bin = __encode_itype(tokens, 0x1);
-            *bin = 0;
             break;
 
         case hash("bgezal"):
-            *bin = 0;
+            tokens.insert(tokens.begin() + 2, "0x11");
+            tokens[3] = __encode_label(assembler, tokens[3]);
+            *bin = __encode_itype(tokens, 0x1);
             break;
 
         case hash("bgtz"):
-            *bin = 0;
+            tokens.insert(tokens.begin() + 2, "0x0");
+            tokens[3] = __encode_label(assembler, tokens[3]);
+            *bin = __encode_itype(tokens, 0x7);
             break;
 
         case hash("blez"):
-            *bin = 0;
+            tokens.insert(tokens.begin() + 2, "0x0");
+            tokens[3] = __encode_label(assembler, tokens[3]);
+            *bin = __encode_itype(tokens, 0x6);
             break;
 
         case hash("bltzal"):
-            *bin = 0;
+            tokens.insert(tokens.begin() + 2, "0x10");
+            tokens[3] = __encode_label(assembler, tokens[3]);
+            *bin = __encode_itype(tokens, 0x1);
             break;
 
         case hash("bltz"):
-            *bin = 0;
+            tokens.insert(tokens.begin() + 2, "0x0");
+            tokens[3] = __encode_label(assembler, tokens[3]);
+            *bin = __encode_itype(tokens, 0x1);
             break;
 
         case hash("bne"):
-            *bin = 0;
+            tokens[3] = __encode_label(assembler, tokens[3]);
+            *bin = __encode_itype(tokens, 0x5);
             break;
 
         case hash("j"):
-            *bin = 0;
+            tokens[1] = __encode_label(assembler, tokens[1]);
+            *bin = __encode_jtype(tokens, 0x2);
             break;
 
         case hash("jal"):
-            *bin = 0;
+            tokens[1] = __encode_label(assembler, tokens[1]);
+            *bin = __encode_jtype(tokens, 0x3);
             break;
 
         case hash("jalr"):
-            *bin = 0;
+            tokens.insert(tokens.begin() + 2, "0x0");
+            tokens.insert(tokens.begin() + 4, "0x0");
+            *bin = __encode_jtype(tokens, 0x9);
             break;
 
         case hash("jr"):
-            *bin = 0;
+            tokens.push_back("0x0");
+            tokens.push_back("0x8");
+            *bin = __encode_itype(tokens, 0x0);
             break;
 
         case hash("teq"):
-            *bin = 0;
+            tokens.push_back("0x0");
+            *bin = __encode_rtype(tokens, 0x0, 0x34);
             break;
 
         case hash("teqi"):
-            *bin = 0;
+            tokens.insert(tokens.begin() + 2, "0xc");
+            *bin = __encode_itype(tokens, 0x1);
             break;
 
         case hash("tne"):
-            *bin = 0;
+            tokens.push_back("0x0");
+            *bin = __encode_rtype(tokens, 0x0, 0x36);
             break;
 
         case hash("tnei"):
-            *bin = 0;
+            tokens.insert(tokens.begin() + 2, "0xe");
+            *bin = __encode_itype(tokens, 0x1);
             break;
 
         case hash("tge"):
-            *bin = 0;
+            tokens.push_back("0x0");
+            *bin = __encode_rtype(tokens, 0x0, 0x30);
             break;
 
         case hash("tgeu"):
-            *bin = 0;
+            tokens.push_back("0x0");
+            *bin = __encode_rtype(tokens, 0x0, 0x31);
             break;
 
         case hash("tgei"):
-            *bin = 0;
+            tokens.insert(tokens.begin() + 2, "0x8");
+            *bin = __encode_itype(tokens, 0x1);
             break;
 
         case hash("tgeiu"):
-            *bin = 0;
+            tokens.insert(tokens.begin() + 2, "0x9");
+            *bin = __encode_itype(tokens, 0x1);
             break;
 
         case hash("tlt"):
-            *bin = 0;
+            tokens.push_back("0x0");
+            *bin = __encode_rtype(tokens, 0x0, 0x32);
             break;
 
         case hash("tltu"):
-            *bin = 0;
+            tokens.push_back("0x0");
+            *bin = __encode_rtype(tokens, 0x0, 0x33);
             break;
 
         case hash("tlti"):
-            *bin = 0;
+            tokens.insert(tokens.begin() + 2, "0xa");
+            *bin = __encode_itype(tokens, 0x1);
             break;
 
         case hash("tltiu"):
-            *bin = 0;
+            tokens.insert(tokens.begin() + 2, "0xb");
+            *bin = __encode_itype(tokens, 0x1);
             break;
 
         case hash("lb"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x20);
             break;
 
         case hash("lbu"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x24);
             break;
 
         case hash("lh"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x21);
             break;
 
         case hash("lhu"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x25);
             break;
 
         case hash("lw"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x23);
             break;
 
         case hash("lwl"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x22);
             break;
 
         case hash("lwr"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x26);
             break;
 
         case hash("ll"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x30);
             break;
 
         case hash("sb"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x28);
             break;
 
         case hash("sh"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x29);
             break;
 
         case hash("sw"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x2b);
             break;
 
         case hash("swl"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x2a);
             break;
 
         case hash("swr"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x2e);
             break;
 
         case hash("sc"):
-            *bin = 0;
+            *bin = __encode_itype(tokens, 0x38);
             break;
 
-        case hash("mfhi"):
-            *bin = 0;
+        case hash("mfhi"): {
+            tokens_t _t{tokens[0], "0x0", tokens[1], "0x0"};
+            *bin = __encode_rtype(tokens, 0x0, 0x10);
+        }
             break;
 
-        case hash("mflo"):
-            *bin = 0;
+        case hash("mflo"): {
+            tokens_t _t{tokens[0], "0x0", tokens[1], "0x0"};
+            *bin = __encode_rtype(tokens, 0x0, 0x12);
+        }
             break;
 
-        case hash("mthi"):
-            *bin = 0;
+        case hash("mthi"): {
+            tokens_t _t{tokens[0], "0x0", tokens[1], "0x0"};
+            *bin = __encode_rtype(tokens, 0x0, 0x11);
+        }
             break;
 
-        case hash("mtlo"):
-            *bin = 0;
+        case hash("mtlo"): {
+            tokens_t _t{tokens[0], "0x0", tokens[1], "0x0"};
+            *bin = __encode_rtype(tokens, 0x0, 0x13);
+        }
             break;
 
         case hash("syscall"):
+            *bin = 0xc;
             break;
 
         default:
@@ -463,6 +510,7 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t *poi
 
     }
 
+    *pointat += 1;
     return 1;
 }
 
