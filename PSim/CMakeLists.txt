@@ -26,14 +26,23 @@ set(SIMLIB_SRCS
         src/mmbar.cc
         src/assembler.cc)
 
+set(SIMLIB_INCLUDE
+        include/options.hh
+        include/psim.hh
+        include/utils.hh
+        include/register.hh
+        include/mmbar.hh
+        include/assembler.hh)
+
 set(SIMEXEC_SRCS)
 
+include_directories(include)
 
 # ========================================================================== #
 # simulation library
 # ========================================================================== #
 
-add_library(SIMLIB ${SIMLIB_SRCS})
+add_library(SIMLIB SHARED ${SIMLIB_SRCS} ${SIMLIB_INCLUDE})
 target_include_directories(SIMLIB PRIVATE include)
 
 add_executable(ttintegration test/ttintegration.cc)

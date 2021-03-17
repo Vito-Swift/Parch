@@ -131,4 +131,26 @@ inline constexpr unsigned int hash(const char *s, int off = 0) {
     return !s[off] ? 5381 : (hash(s, off + 1) * 33) ^ s[off];
 }
 
+#ifdef WINDOWS
+#include <direct.h>
+#define GetCurrentDir _getcwd
+#else
+
+#include <unistd.h>
+
+#define GetCurrentDir getcwd
+#endif
+
+inline int currentPath(std::string &path) {
+    char cCurrentPath[FILENAME_MAX];
+
+    if (!GetCurrentDir(cCurrentPath, sizeof(cCurrentPath))) {
+        return errno;
+    }
+
+    cCurrentPath[sizeof(cCurrentPath) - 1] = '\0'; /* not really required */
+    path = std::string(cCurrentPath);
+}
+
+
 #endif //PARCH_UTILS_HH

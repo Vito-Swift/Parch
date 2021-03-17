@@ -514,6 +514,62 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t *poi
     return 1;
 }
 
+bool __catalyze_content(Assembler *assembler) {
+    bool inText = false, inData = false;
+    uint32_t pointat = 0x10000;
+
+    for (std::string line: assembler->content) {
+        // remove leading and trailing spaces
+        line = std::regex_replace(line, std::regex("^[ \t]+"), "");
+        line = std::regex_replace(line, std::regex("[ \t]+$"), "");
+        line = removeComments(line);
+
+        if (isLineEmpty(line))
+            continue;
+
+        switch (hash(line.c_str())) {
+
+            case hash(".text"):
+                PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[DT]\t\t%s\n", line.c_str());
+                inText = true;
+                inData = false;
+                continue;
+
+            case hash(".data"):
+                PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[DD]\t\t%s\n", line.c_str());
+                inText = false;
+                inData = true;
+                continue;
+
+            default:
+                break;
+
+        }
+
+        if (inText) {
+            if (isLineALabel(line)) {
+                std::string label = line.substr(0, line.find(":"));
+                PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[LABEL]\t\t%s\t----->\tpoint_at: 0x%X\n", label.c_str(), pointat);
+                assembler->label_map[label] = pointat;
+            } else {
+                tokens_t tokens = tokenize_str(line);
+                uint32_t bin_line;
+
+                if (!encode(assembler, tokens, &bin_line, &pointat)) {
+                    return 0;
+                }
+                assembler->bin.push_back(bin_line);
+            }
+        }
+    }
+
+    return 1;
+}
+
+bool __parse(Assembler *assembler) {
+    return true;
+}
+
 bool __assembler_exec(Assembler *assembler) {
     bool inText = false, inData = false;
     uint32_t pointat = 0x10000;
@@ -576,6 +632,10 @@ void assembler_exec(Assembler *assembler) {
         EXIT_WITH_MSG("[!] assembling failed, exit...\n");
     }
     PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\tAssembling finished.\n");
+}
+
+void assembler_free(Assembler *assembler) {
+
 }
 
 bool __parse_file(Assembler *assembler) {
