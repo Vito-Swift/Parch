@@ -1,7 +1,7 @@
 /**
  * @filename: ttintegration.cc.c
  * @author: Vito Wu <chenhaowu[at]link.cuhk.edu.cn>
- * @version: 
+ * @version:
  * @desc:
  * @date: 3/9/2021
  */

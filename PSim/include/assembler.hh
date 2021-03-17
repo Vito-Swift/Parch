@@ -26,6 +26,7 @@
 struct Assembler {
     std::string ELF_path;
     std::vector<std::string> content;
+    std::vector<std::string> text_section;
     std::vector<uint32_t> bin;
     std::map<std::string, uint32_t> label_map;
 };
