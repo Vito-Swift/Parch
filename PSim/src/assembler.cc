@@ -148,9 +148,10 @@ uint32_t __encode_itype(const tokens_t &tokens, const uint32_t opcode) {
 }
 
 uint32_t __encode_ls(const tokens_t &tokens, const uint32_t opcode) {
+    // l/s rt, address -> rs, rt, offset
     uint32_t rt, offset;
-    __encode_address(tokens[2], &rt, &offset);
-    tokens_t _tokens{tokens[0], tokens[1], std::to_string(rt), std::to_string(offset)};
+    __encode_address(tokens[1], &rt, &offset);
+    tokens_t _tokens{tokens[0], "$zero", std::to_string(rt), std::to_string(offset)};
     return __encode_itype(_tokens, opcode);
 }
 
@@ -160,14 +161,14 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin) {
 
         case hash("add"): {
             // add rd, rs, rt -> rs, rt, rd, 0x0
-            tokens_t _t{tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
+            tokens_t _t{tokens[0], tokens[2], tokens[3], tokens[1], "0x0"};
             *bin = __encode_rtype(_t, 0x0, 0x20);
             break;
         }
 
         case hash("addu"): {
             // addu rd, rs, rt -> rs, rt, rd, 0x0
-            tokens_t _t{tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
+            tokens_t _t{tokens[0], tokens[2], tokens[3], tokens[1], "0x0"};
             *bin = __encode_rtype(_t, 0x0, 0x21);
             break;
         }
@@ -180,354 +181,476 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin) {
         }
 
         case hash("addiu"): {
+            // addiu rt, rs, imm -> rs, rt, imm
             tokens_t _t{tokens[0], tokens[2], tokens[1], tokens[3]};
             *bin = __encode_itype(_t, 0x9);
             break;
         }
 
         case hash("and"): {
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x24);
+            // and rd, rs, rt -> rs, rt, rd, 0x0
+            tokens_t _t{tokens[0], tokens[2], tokens[3], tokens[1], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x24);
             break;
         }
 
-        case hash("andi"):
-            *bin = __encode_itype(tokens, 0xc);
+        case hash("andi"): {
+            // andi rt, rs, imm -> rs, rt, imm
+            tokens_t _t{tokens[0], tokens[2], tokens[1], tokens[3]};
+            *bin = __encode_itype(_t, 0xc);
             break;
+        }
 
-        case hash("clo"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x1c, 0x21);
+        case hash("clo"): {
+            // clo rd, rs -> rs, 0x0, rd, 0x0
+            tokens_t _t{tokens[0], tokens[2], "0x0", tokens[1], "0x0"};
+            *bin = __encode_rtype(_t, 0x1c, 0x21);
             break;
+        }
 
-        case hash("clz"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x1c, 0x20);
+        case hash("clz"): {
+            // clz rd, rs -> rs, 0x0, rd, 0x0
+            tokens_t _t{tokens[0], tokens[2], "0x0", tokens[1], "0x0"};
+            *bin = __encode_rtype(_t, 0x1c, 0x20);
             break;
+        }
 
-        case hash("div"):
-            tokens.push_back(token_t("0x1a"));
-            *bin = __encode_itype(tokens, 0x0);
+        case hash("div"): {
+            // div rs, rt -> rs, rt, 0x1a
+            tokens_t _t{tokens[0], tokens[1], tokens[2], "0x1a"};
+            *bin = __encode_itype(_t, 0x0);
             break;
+        }
 
-        case hash("divu"):
+        case hash("divu"): {
+            // divu rs, rt -> rs, rt, 0x1b
             tokens.push_back(token_t("0x1b"));
             *bin = __encode_itype(tokens, 0x0);
             break;
+        }
 
-        case hash("mult"):
+        case hash("mult"): {
+            // mult rs, rt -> rs, rt, 0x18
             tokens.push_back(token_t("0x18"));
             *bin = __encode_itype(tokens, 0x0);
             break;
+        }
 
-        case hash("madd"):
+        case hash("madd"): {
+            // madd rs, rt -> rs, rt, 0x0
             tokens.push_back(token_t("0x0"));
             *bin = __encode_itype(tokens, 0x1c);
             break;
+        }
 
-        case hash("msub"):
+        case hash("msub"): {
+            // msub rs, rt -> rs, rt, 0x4
             tokens.push_back(token_t("0x4"));
             *bin = __encode_itype(tokens, 0x1c);
             break;
+        }
 
-        case hash("maddu"):
+        case hash("maddu"): {
+            // maddu rs, rt -> rs, rt, 0x1
             tokens.push_back(token_t("0x1"));
             *bin = __encode_itype(tokens, 0x1c);
             break;
+        }
 
-        case hash("msubu"):
+        case hash("msubu"): {
+            // msubu rs, rt -> rs, rt, 0x4
             tokens.push_back(token_t("0x5"));
             *bin = __encode_itype(tokens, 0x1c);
             break;
+        }
 
-        case hash("nor"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x27);
+        case hash("nor"): {
+            // nor rd, rs, rt -> rs, rt, rd, 0x0
+            tokens_t _t{tokens[0], tokens[2], tokens[3], tokens[1], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x27);
             break;
+        }
 
-        case hash("or"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x25);
+        case hash("or"): {
+            // or rd, rs, rt -> rs, rt, rd, 0x0
+            tokens_t _t{tokens[0], tokens[2], tokens[3], tokens[1], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x25);
             break;
+        }
 
-        case hash("ori"):
-            *bin = __encode_itype(tokens, 0xd);
+        case hash("ori"): {
+            // ori rt, rs, imm -> rs, rt, imm
+            tokens_t _t{tokens[0], tokens[2], tokens[1], tokens[3]};
+            *bin = __encode_itype(_t, 0xd);
             break;
+        }
 
-        case hash("sll"):
-            *bin = __encode_rtype(tokens, 0x0, 0x0);
+        case hash("sll"): {
+            // sll rd, rt, shamt -> rs, rt, rd, shamt
+            tokens_t _t{tokens[0], "$zero", tokens[2], tokens[1], tokens[3]};
+            *bin = __encode_rtype(_t, 0x0, 0x0);
             break;
+        }
 
-        case hash("sllv"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x4);
+        case hash("sllv"): {
+            // sllv rd, rt, rs -> rs, rt, rd, 0x0
+            tokens_t _t{tokens[0], tokens[3], tokens[2],tokens[1], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x4);
             break;
+        }
 
-        case hash("sra"):
-            *bin = __encode_rtype(tokens, 0x0, 0x3);
+        case hash("sra"): {
+            // sra rd, rt, shamt -> rs, rt, rd, shamt
+            tokens_t _t{tokens[0], "$zero", tokens[2], tokens[1], tokens[3]};
+            *bin = __encode_rtype(_t, 0x0, 0x3);
             break;
+        }
 
-        case hash("srav"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x7);
+        case hash("srav"): {
+            // srav rd, rt, rs -> rs, rt, rd, 0x0
+            tokens_t _t{tokens[0], tokens[3], tokens[2],tokens[1], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x7);
             break;
+        }
 
-        case hash("srl"):
-            *bin = __encode_rtype(tokens, 0x0, 0x2);
+        case hash("srl"): {
+            // srl rd, rt, shamt -> rs, rt, rd, shamt
+            tokens_t _t{tokens[0], "$zero", tokens[2], tokens[1], tokens[3]};
+            *bin = __encode_rtype(_t, 0x0, 0x2);
             break;
+        }
 
-        case hash("srlv"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x6);
+        case hash("srlv"): {
+            // srlv rd, rt, rs -> rs, rt, rd, 0x0
+            tokens_t _t{tokens[0], tokens[3], tokens[2],tokens[1], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x6);
             break;
+        }
 
-        case hash("sub"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x22);
+        case hash("sub"): {
+            // sub rd, rs, rt -> rs, rt, rd, 0x0
+            tokens_t _t{tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x22);
             break;
+        }
 
-        case hash("subu"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x23);
+        case hash("subu"): {
+            // subu rd, rs, rt -> rs, rt, rd, 0x0
+            tokens_t _t {tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x23);
             break;
+        }
 
-        case hash("xor"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x26);
+        case hash("xor"): {
+            // xor rd, rs, rt -> rs, rt, rd, 0x0
+            tokens_t _t {tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x26);
             break;
+        }
 
-        case hash("xori"):
-            *bin = __encode_itype(tokens, 0xe);
+        case hash("xori"): {
+            // xori rt, rs, imm -> rs, rt, imm
+            tokens_t _t{tokens[0], tokens[2], tokens[1], tokens[3]};
+            *bin = __encode_itype(_t, 0xe);
             break;
+        }
 
-        case hash("lui"):
-            tokens.insert(tokens.begin() + 1, "0x0");
-            *bin = __encode_itype(tokens, 0xf);
+        case hash("lui"): {
+            // lui rt, imm -> 0x0, rt, imm
+            tokens_t _t{tokens[0], "0x0", tokens[1], tokens[2]};
+            *bin = __encode_itype(_t, 0xf);
             break;
+        }
 
-        case hash("slt"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x2a);
+        case hash("slt"): {
+            // slt rd, rs, rt -> rs, rt, rd, 0x0
+            tokens_t _t{tokens[0], tokens[2], tokens[3], tokens[1], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x2a);
             break;
+        }
 
-        case hash("sltu"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x2b);
+        case hash("sltu"): {
+            // sltu rd, rs, rt -> rs, rt, rd, 0x0
+            tokens_t _t{tokens[0], tokens[2], tokens[3], tokens[1], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x2b);
             break;
+        }
 
-        case hash("slti"):
-            *bin = __encode_itype(tokens, 0xa);
+        case hash("slti"): {
+            // slti rt, rs, imm -> rs, rt, imm
+            tokens_t _t{tokens[0], tokens[2], tokens[1], tokens[3]};
+            *bin = __encode_itype(_t, 0xa);
             break;
+        }
 
-        case hash("sltiu"):
-            *bin = __encode_itype(tokens, 0xb);
+        case hash("sltiu"): {
+            // sltiu rt, rs, imm -> rs, rt, imm
+            tokens_t _t{tokens[0], tokens[2], tokens[1], tokens[3]};
+            *bin = __encode_itype(_t, 0xb);
             break;
+        }
 
-        case hash("beq"):
+        case hash("beq"): {
             tokens[3] = __encode_label(assembler, tokens[3]);
             *bin = __encode_itype(tokens, 0x4);
             break;
+        }
 
-        case hash("bgez"):
-            tokens.insert(tokens.begin() + 2, "0x1");
-            tokens[3] = __encode_label(assembler, tokens[3]);
-            *bin = __encode_itype(tokens, 0x1);
+        case hash("bgez"): {
+            // bgez rs, label -> rs, 0x1, offset
+            tokens_t _t{tokens[0], tokens[1], "0x1", __encode_label(assembler, tokens[2])};
+            *bin = __encode_itype(_t, 0x1);
             break;
+        }
 
-        case hash("bgezal"):
-            tokens.insert(tokens.begin() + 2, "0x11");
-            tokens[3] = __encode_label(assembler, tokens[3]);
-            *bin = __encode_itype(tokens, 0x1);
+        case hash("bgezal"): {
+            // bgezal rs, label-> rs, 0x11, offset
+            tokens_t _t{tokens[0], tokens[1], "0x11", __encode_label(assembler, tokens[2])};
+            *bin = __encode_itype(_t, 0x1);
             break;
+        }
 
-        case hash("bgtz"):
-            tokens.insert(tokens.begin() + 2, "0x0");
-            tokens[3] = __encode_label(assembler, tokens[3]);
-            *bin = __encode_itype(tokens, 0x7);
+        case hash("bgtz"): {
+            // bgtz rs, label -> rs, 0x0, offset
+            tokens_t _t{tokens[0], tokens[1], "0x0", __encode_label(assembler, tokens[2])};
+            *bin = __encode_itype(_t, 0x7);
             break;
+        }
 
-        case hash("blez"):
-            tokens.insert(tokens.begin() + 2, "0x0");
-            tokens[3] = __encode_label(assembler, tokens[3]);
-            *bin = __encode_itype(tokens, 0x6);
+        case hash("blez"): {
+            // blez rs, label -> rs, 0x0, offset
+            tokens_t _t{tokens[0], tokens[1], "0x0", __encode_label(assembler, tokens[2])};
+            *bin = __encode_itype(_t, 0x6);
             break;
+        }
 
-        case hash("bltzal"):
-            tokens.insert(tokens.begin() + 2, "0x10");
-            tokens[3] = __encode_label(assembler, tokens[3]);
-            *bin = __encode_itype(tokens, 0x1);
+        case hash("bltzal"): {
+            // bltzal rs, label -> rs, 0x10, offset
+            tokens_t _t{tokens[0], tokens[1], "0x10", __encode_label(assembler, tokens[2])};
+            *bin = __encode_itype(_t, 0x1);
             break;
+        }
 
-        case hash("bltz"):
-            tokens.insert(tokens.begin() + 2, "0x0");
-            tokens[3] = __encode_label(assembler, tokens[3]);
-            *bin = __encode_itype(tokens, 0x1);
+        case hash("bltz"): {
+            // bltz rs, label -> rs, 0x0, offset
+            tokens_t _t{tokens[0], tokens[1], "0x0", tokens[2]};
+            *bin = __encode_itype(_t, 0x1);
             break;
+        }
 
-        case hash("bne"):
+        case hash("bne"): {
+            // bne rs, rt, label -> rs, rt, offset
             tokens[3] = __encode_label(assembler, tokens[3]);
             *bin = __encode_itype(tokens, 0x5);
             break;
+        }
 
-        case hash("j"):
+        case hash("j"): {
+            // j target
             tokens[1] = __encode_label(assembler, tokens[1]);
             *bin = __encode_jtype(tokens, 0x2);
             break;
+        }
 
-        case hash("jal"):
+        case hash("jal"): {
+            // jal target
             tokens[1] = __encode_label(assembler, tokens[1]);
             *bin = __encode_jtype(tokens, 0x3);
             break;
+        }
 
-        case hash("jalr"):
-            tokens.insert(tokens.begin() + 2, "0x0");
-            tokens.insert(tokens.begin() + 4, "0x0");
-            *bin = __encode_jtype(tokens, 0x9);
+        case hash("jalr"): {
+            // jalr rs, rd -> rs, 0x0, rd, 0x0
+            tokens_t _t {tokens[0], tokens[1], "0x0", tokens[2], "0x0"};
+            *bin = __encode_jtype(_t, 0x9);
             break;
+        }
 
-        case hash("jr"):
-            tokens.push_back("0x0");
-            tokens.push_back("0x8");
-            *bin = __encode_itype(tokens, 0x0);
+        case hash("jr"): {
+            // jr rs -> rs, 0x0, 0x8
+            tokens_t _t {tokens[0], tokens[1], "0x0", "0x8"};
+            *bin = __encode_itype(_t, 0x0);
             break;
+        }
 
-        case hash("teq"):
+        case hash("teq"): {
+            // teq rs, rt -> rs, rt, 0x0
             tokens.push_back("0x0");
             *bin = __encode_rtype(tokens, 0x0, 0x34);
             break;
+        }
 
-        case hash("teqi"):
-            tokens.insert(tokens.begin() + 2, "0xc");
-            *bin = __encode_itype(tokens, 0x1);
+        case hash("teqi"): {
+            // teqi rs, imm -> rs, 0xc, imm
+            tokens_t _t{tokens[0], tokens[1], "0xc", tokens[2]};
+            *bin = __encode_itype(_t, 0x1);
             break;
+        }
 
-        case hash("tne"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x36);
+        case hash("tne"): {
+            // tne rs, rt -> rs, rt, 0x36
+            tokens_t _t{tokens[0], tokens[1], tokens[2], "0x36"};
+            *bin = __encode_itype(_t, 0x0);
             break;
+        }
 
-        case hash("tnei"):
-            tokens.insert(tokens.begin() + 2, "0xe");
-            *bin = __encode_itype(tokens, 0x1);
+        case hash("tnei"): {
+            // tnei rs, imm -> rs, 0xe, imm
+            tokens_t _t{tokens[0], tokens[1], "0xe", tokens[2]};
+            *bin = __encode_itype(_t, 0x1);
             break;
+        }
 
-        case hash("tge"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x30);
+        case hash("tge"): {
+            // tge rs, rt -> rs, rt, 0x30
+            tokens_t _t{tokens[0], tokens[1], tokens[2], "0x30"};
+            *bin = __encode_itype(_t, 0x0);
             break;
+        }
 
-        case hash("tgeu"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x31);
+        case hash("tgeu"): {
+            // tgeu rs, rt -> rs, rt, 0x31
+            tokens_t _t{tokens[0], tokens[1], tokens[2], "0x31"};
+            *bin = __encode_itype(_t, 0x0);
             break;
+        }
 
-        case hash("tgei"):
-            tokens.insert(tokens.begin() + 2, "0x8");
-            *bin = __encode_itype(tokens, 0x1);
+        case hash("tgei"): {
+            // tgei rs, imm -> rs, 0x8, imm
+            tokens_t _t{tokens[0], tokens[1], "0x8", tokens[2]};
+            *bin = __encode_itype(_t, 0x1);
             break;
+        }
 
-        case hash("tgeiu"):
-            tokens.insert(tokens.begin() + 2, "0x9");
-            *bin = __encode_itype(tokens, 0x1);
+        case hash("tgeiu"): {
+            // tgeiu rs, imm -> rs, 0x9, imm
+            tokens_t _t{tokens[0], tokens[1], "0x9", tokens[2]};
+            *bin = __encode_itype(_t, 0x1);
             break;
+        }
 
-        case hash("tlt"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x32);
+        case hash("tlt"): {
+            // tlt rs, rt -> rs, rt, 0x32
+            tokens_t _t{tokens[0], tokens[1], tokens[2], "0x32"};
+            *bin = __encode_itype(_t, 0x0);
             break;
+        }
 
-        case hash("tltu"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x33);
+        case hash("tltu"): {
+            // tltu rs, rt -> rs, rt, 0x33
+            tokens_t _t{tokens[0], tokens[1], tokens[2], "0x33"};
+            *bin = __encode_itype(_t, 0x0);
             break;
+        }
 
-        case hash("tlti"):
-            tokens.insert(tokens.begin() + 2, "0xa");
-            *bin = __encode_itype(tokens, 0x1);
+        case hash("tlti"): {
+            // tlti rs, imm -> rs, 0xa, imm
+            tokens_t _t{tokens[0], tokens[1], "0xa", tokens[2]};
+            *bin = __encode_itype(_t, 0x1);
             break;
+        }
 
-        case hash("tltiu"):
-            tokens.insert(tokens.begin() + 2, "0xb");
-            *bin = __encode_itype(tokens, 0x1);
+        case hash("tltiu"): {
+            // tltiu rs, imm -> rs, 0xb, imm
+            tokens_t _t{tokens[0], tokens[1], "0xb", tokens[2]};
+            *bin = __encode_itype(_t, 0x1);
             break;
+        }
 
-        case hash("lb"):
+        case hash("lb"): {
             *bin = __encode_ls(tokens, 0x20);
             break;
+        }
 
-        case hash("lbu"):
+        case hash("lbu"): {
             *bin = __encode_ls(tokens, 0x24);
             break;
+        }
 
-        case hash("lh"):
+        case hash("lh"): {
             *bin = __encode_ls(tokens, 0x21);
             break;
+        }
 
-        case hash("lhu"):
+        case hash("lhu"): {
             *bin = __encode_ls(tokens, 0x25);
             break;
+        }
 
-        case hash("lw"):
+        case hash("lw"): {
             *bin = __encode_ls(tokens, 0x23);
             break;
+        }
 
-        case hash("lwl"):
+        case hash("lwl"): {
             *bin = __encode_ls(tokens, 0x22);
             break;
+        }
 
-        case hash("lwr"):
+        case hash("lwr"): {
             *bin = __encode_ls(tokens, 0x26);
             break;
+        }
 
-        case hash("ll"):
+        case hash("ll"): {
             *bin = __encode_ls(tokens, 0x30);
             break;
+        }
 
-        case hash("sb"):
+        case hash("sb"): {
             *bin = __encode_ls(tokens, 0x28);
             break;
+        }
 
-        case hash("sh"):
+        case hash("sh"): {
             *bin = __encode_ls(tokens, 0x29);
             break;
+        }
 
-        case hash("sw"):
+        case hash("sw"): {
             *bin = __encode_ls(tokens, 0x2b);
             break;
+        }
 
-        case hash("swl"):
+        case hash("swl"): {
             *bin = __encode_ls(tokens, 0x2a);
             break;
+        }
 
-        case hash("swr"):
+        case hash("swr"): {
             *bin = __encode_ls(tokens, 0x2e);
             break;
+        }
 
-        case hash("sc"):
+        case hash("sc"): {
             *bin = __encode_ls(tokens, 0x38);
             break;
+        }
 
         case hash("mfhi"): {
+            // mfhi rd -> 0x0, rd, 0x0
             tokens_t _t{tokens[0], "0x0", tokens[1], "0x0"};
-            *bin = __encode_rtype(tokens, 0x0, 0x10);
+            *bin = __encode_rtype(_t, 0x0, 0x10);
         }
             break;
 
         case hash("mflo"): {
+            // mflo rd -> 0x0, rd, 0x0
             tokens_t _t{tokens[0], "0x0", tokens[1], "0x0"};
-            *bin = __encode_rtype(tokens, 0x0, 0x12);
+            *bin = __encode_rtype(_t, 0x0, 0x12);
         }
             break;
 
         case hash("mthi"): {
-            tokens_t _t{tokens[0], "0x0", tokens[1], "0x0"};
-            *bin = __encode_rtype(tokens, 0x0, 0x11);
+            // mthi rs -> rs, 0x0, 0x11
+            tokens_t _t{tokens[0], tokens[1], "0x11"};
+            *bin = __encode_itype(_t, 0x0);
         }
             break;
 
         case hash("mtlo"): {
-            tokens_t _t{tokens[0], "0x0", tokens[1], "0x0"};
-            *bin = __encode_rtype(tokens, 0x0, 0x13);
+            tokens_t _t{tokens[0], tokens[1], "0x13"};
+            *bin = __encode_itype(_t, 0x0);
         }
             break;
 
@@ -546,7 +669,7 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin) {
 
 bool __catalyze_content(Assembler *assembler) {
     bool inText = false, inData = false;
-    uint32_t pointat = 0x10000;
+    uint32_t pointat = 0x40000;
 
     for (std::string line: assembler->content) {
         // remove leading and trailing spaces
@@ -583,7 +706,7 @@ bool __catalyze_content(Assembler *assembler) {
                 assembler->label_map[label] = pointat;
             } else {
                 assembler->text_section.push_back(line);
-                pointat += 1;
+                pointat += 4;
             }
         }
     }
@@ -653,7 +776,7 @@ void assembler_init(Assembler *assembler, std::string ELF_path, bool loadFromELF
     if (loadFromELF) {
         PRINTF_DEBUG_VERBOSE(verbose,
                              "[ASM]\tRead from file: %s\n",
-                             assembler->ELF_path.c_str());
+                             ELF_path.c_str());
 
         assembler->ELF_path = ELF_path;
         parse_file(assembler);
