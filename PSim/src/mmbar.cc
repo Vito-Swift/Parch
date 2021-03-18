@@ -12,6 +12,7 @@ void __reset_mmcounters(MMBar *mmBar) {
     mmBar->text_end_addr = MEM_TEXT_START;
     mmBar->static_end_addr = MEM_DATA_START;
     mmBar->dynamic_end_addr = MEM_DATA_START;
+    mmBar->staticloaded = true;
 }
 
 bool mmbar_write(MMBar* mmBar, uint32_t addr, uint8_t c) {
@@ -50,11 +51,22 @@ uint8_t mmbar_read(MMBar* mmBar, uint32_t addr) {
 }
 
 void mmbar_load_text(MMBar *mmBar, std::vector<std::uint32_t> bin) {
-#define HIHI_MASK 0xFF000000UL
-#define HILO_MASK 0xFF0000UL
-#define LOHI_MASK 0xFF00UL
 #define LOLO_MASK 0xFFUL
+    for (uint32_t bl: bin) {
+        uint8_t blhh = bl >> 24;
+        uint8_t blhl = (bl >> 16) & LOLO_MASK;
+        uint8_t bllh = (bl >> 8) & LOLO_MASK;
+        uint8_t blll = bl & LOLO_MASK;
 
+        mmbar_write(mmBar, mmBar->text_end_addr, blll);
+        mmBar->text_end_addr += 1;
+        mmbar_write(mmBar, mmBar->text_end_addr, bllh);
+        mmBar->text_end_addr += 1;
+        mmbar_write(mmBar, mmBar->text_end_addr, blhl);
+        mmBar->text_end_addr += 1;
+        mmbar_write(mmBar, mmBar->text_end_addr, blhh);
+        mmBar->text_end_addr += 1;
+    }
 }
 
 void mmbar_init(MMBar *mmBar) {

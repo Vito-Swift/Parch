@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 #include "utils.hh"
+#include "register.hh"
 #include "options.hh"
 
 #define MEM_SIZE 0x80000000UL
@@ -27,6 +28,7 @@ struct MMBar {
     uint32_t static_end_addr;
     uint32_t dynamic_end_addr;
     bool initialized = false;
+    bool staticloaded = false;
 };
 
 void mmbar_init(MMBar *mmBar);

@@ -6,5 +6,6 @@
  * @date: 2/24/2021
  */
 
-#include "utils.hh"
 #include "register.hh"
+
+uint32_t register_file[REG_NUM] = {0};

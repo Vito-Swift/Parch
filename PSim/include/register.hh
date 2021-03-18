@@ -11,7 +11,11 @@
 
 #include <map>
 
-enum register_type {
+#include "utils.hh"
+
+#define REG_NUM 32
+
+enum register_types {
     zero,                                   // constant 0
     at,                                     // reserved for assembler
     v0, v1,                                 // expression evaluation and results of a function
@@ -43,5 +47,8 @@ inline std::map<std::string, uint32_t> create_regparse_map() {
     rgm["ra"] = ra;
     return rgm;
 }
+
+extern uint32_t register_file[REG_NUM];
+
 
 #endif //PARCH_REGISTER_HH
