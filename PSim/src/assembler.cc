@@ -736,7 +736,7 @@ bool __catalyze_content(Assembler *assembler) {
         if (inText || contentAllText) {
             if (isLineALabel(line)) {
                 std::regex label_rgx("(.+):.*");
-                std::regex remainder_rgx(".+:(.*)");
+                std::regex remainder_rgx(".+:\\s*(.*)");
                 std::smatch match;
 
                 // search for label in the line
@@ -749,8 +749,11 @@ bool __catalyze_content(Assembler *assembler) {
 
                 PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[LABEL]\t\t%s\t----->\tpoint_at: 0x%X\n", label.c_str(), pointat);
                 assembler->label_map[label] = pointat;
-                if (!line_remainder.empty())
-                    assembler->text_section.push_back(line);
+
+                if (!line_remainder.empty()) {
+                    assembler->text_section.push_back(line_remainder);
+                    pointat += 1;
+                }
             } else {
                 assembler->text_section.push_back(line);
                 pointat += 1;
