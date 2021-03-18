@@ -10,6 +10,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <bitset>
 
 #include "assembler.hh"
 #include "utils.hh"
@@ -41,7 +42,7 @@ TEST_P(AssemblerTest, HandleTrueReturn) {
     std::ifstream infile(param.tst_file);
     std::string line;
     while (std::getline(infile, line)) {
-        uint32_t bin = std::stoi(line, nullptr, 2);
+        uint32_t bin = std::stoul(line, nullptr, 2);
         tst_bin.push_back(bin);
     }
 
@@ -52,10 +53,17 @@ TEST_P(AssemblerTest, HandleTrueReturn) {
     if (tst_bin.size() != assembler.bin.size()) {
 
     }
-    ASSERT_EQ(tst_bin.size(), assembler.bin.size());
+    ASSERT_EQ(tst_bin.size(), assembler.bin.size())
+    << "Diagnose:\n\tTST Binary Lines: " << tst_bin.size()
+    << "\t\tAssembled Binary Lines: " << assembler.bin.size() << "\n\n";
 
     for (uint32_t i = 0; i < tst_bin.size(); i++) {
-        EXPECT_EQ(tst_bin[i], assembler.bin[i]);
+        EXPECT_EQ(tst_bin[i], assembler.bin[i])
+        << "Diagnose:\n\tFile: " << param.tst_file << "\n\t"
+        << "Line: " << i << "\n\t"
+        << "TST Bin: " << std::bitset<32>(tst_bin[i]) << "\n\t"
+        << "ASM Bin: " << std::bitset<32>(assembler.bin[i]) << "\n\t"
+        << "ASM Text: " << assembler.text_section[i] << "\n\n";
     }
 
     assembler_free(&assembler);
@@ -74,9 +82,9 @@ INSTANTIATE_TEST_SUITE_P (
                 testparam_t("testfiles/ttassembler/7.in", "testfiles/ttassembler/7.out"),
                 testparam_t("testfiles/ttassembler/8.in", "testfiles/ttassembler/8.out"),
                 testparam_t("testfiles/ttassembler/9.in", "testfiles/ttassembler/9.out"),
-                testparam_t("testfiles/ttassembler/10.in", "testfilestt/assembler/10.out"),
-                testparam_t("testfiles/ttassembler/11.in", "testfilestt/assembler/11.out"),
-                testparam_t("testfiles/ttassembler/12.in", "testfilestt/assembler/12.out")
+                testparam_t("testfiles/ttassembler/10.in", "testfiles/ttassembler/10.out"),
+                testparam_t("testfiles/ttassembler/11.in", "testfiles/ttassembler/11.out"),
+                testparam_t("testfiles/ttassembler/12.in", "testfiles/ttassembler/12.out")
         )
 );
 

@@ -54,7 +54,7 @@ uint32_t __encode_reg(const token_t &reg_str) {
     return reg_map[reg_key];
 }
 
-void __encode_address(const token_t &addr_str, uint32_t *rt, uint32_t *offset) {
+void __encode_address(const token_t &addr_str, std::string *rs, uint32_t *offset) {
     std::regex rt_rgx("\\d+\\(\\$(\\w\\d)\\)");
     std::regex offset_rgx("(\\d+)\\(\\$\\w\\d\\)");
     std::smatch match;
@@ -65,15 +65,20 @@ void __encode_address(const token_t &addr_str, uint32_t *rt, uint32_t *offset) {
 
     // search for rt register in the token
     std::regex_search(addr_str, match, rt_rgx);
-    *rt = __encode_reg(match[1]);
+    *rs = match[1];
 }
 
 std::string __encode_label(Assembler *assembler, const token_t &label_str) {
     if (assembler->label_map.find(label_str) == assembler->label_map.end())
         EXIT_WITH_MSG("Assembly contains not defined label: %s\n", label_str.c_str());
-    std::stringstream sstream;
-    sstream << std::hex << assembler->label_map[label_str];
-    return sstream.str();
+    return std::to_string(assembler->label_map[label_str]);
+}
+
+std::string __encode_label_to_offset(Assembler* assembler, const token_t& label_str, uint32_t pointat) {
+    if (assembler->label_map.find(label_str) == assembler->label_map.end())
+        EXIT_WITH_MSG("Assembly contains not defined label: %s\n", label_str.c_str());
+    int32_t offset = assembler->label_map[label_str] - pointat;
+    return std::to_string(offset);
 }
 
 uint32_t __encode_rtype(const tokens_t &tokens,
@@ -138,24 +143,26 @@ uint32_t __encode_itype(const tokens_t &tokens, const uint32_t opcode) {
     uint32_t immediate = 0xFFFF & int16_t(std::stoi(tokens[3]));
     uint32_t bin = (opcode << 26) | (rs << 21) | (rt << 16) | immediate;
     PRINTF_DEBUG_VERBOSE(verbose,
-                         "[ASM]\t[ENCODE]\tInstruction: %s  %s,%s"
+                         "[ASM]\t[ENCODE]\tInstruction: %s  %s,%s,%s"
                          "\t\t----->\t\t%s\n",
                          tokens[0].c_str(),
                          tokens[1].c_str(),
                          tokens[2].c_str(),
+                         tokens[3].c_str(),
                          std::bitset<32>(bin).to_string().c_str());
     return bin;
 }
 
 uint32_t __encode_ls(const tokens_t &tokens, const uint32_t opcode) {
     // l/s rt, address -> rs, rt, offset
-    uint32_t rt, offset;
-    __encode_address(tokens[1], &rt, &offset);
-    tokens_t _tokens{tokens[0], "$zero", std::to_string(rt), std::to_string(offset)};
+    uint32_t offset;
+    std::string rs;
+    __encode_address(tokens[2], &rs, &offset);
+    tokens_t _tokens{tokens[0], rs, tokens[1], std::to_string(offset)};
     return __encode_itype(_tokens, opcode);
 }
 
-bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin) {
+bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t pointat) {
     token_t opcode_string = tokens[0];
     switch (hash(opcode_string.c_str())) {
 
@@ -294,7 +301,7 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin) {
 
         case hash("sllv"): {
             // sllv rd, rt, rs -> rs, rt, rd, 0x0
-            tokens_t _t{tokens[0], tokens[3], tokens[2],tokens[1], "0x0"};
+            tokens_t _t{tokens[0], tokens[3], tokens[2], tokens[1], "0x0"};
             *bin = __encode_rtype(_t, 0x0, 0x4);
             break;
         }
@@ -308,7 +315,7 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin) {
 
         case hash("srav"): {
             // srav rd, rt, rs -> rs, rt, rd, 0x0
-            tokens_t _t{tokens[0], tokens[3], tokens[2],tokens[1], "0x0"};
+            tokens_t _t{tokens[0], tokens[3], tokens[2], tokens[1], "0x0"};
             *bin = __encode_rtype(_t, 0x0, 0x7);
             break;
         }
@@ -322,7 +329,7 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin) {
 
         case hash("srlv"): {
             // srlv rd, rt, rs -> rs, rt, rd, 0x0
-            tokens_t _t{tokens[0], tokens[3], tokens[2],tokens[1], "0x0"};
+            tokens_t _t{tokens[0], tokens[3], tokens[2], tokens[1], "0x0"};
             *bin = __encode_rtype(_t, 0x0, 0x6);
             break;
         }
@@ -336,14 +343,14 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin) {
 
         case hash("subu"): {
             // subu rd, rs, rt -> rs, rt, rd, 0x0
-            tokens_t _t {tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
+            tokens_t _t{tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
             *bin = __encode_rtype(_t, 0x0, 0x23);
             break;
         }
 
         case hash("xor"): {
             // xor rd, rs, rt -> rs, rt, rd, 0x0
-            tokens_t _t {tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
+            tokens_t _t{tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
             *bin = __encode_rtype(_t, 0x0, 0x26);
             break;
         }
@@ -391,56 +398,57 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin) {
         }
 
         case hash("beq"): {
-            tokens[3] = __encode_label(assembler, tokens[3]);
+            // beq rs, rt, offset
+            tokens[3] = __encode_label_to_offset(assembler, tokens[3], pointat);
             *bin = __encode_itype(tokens, 0x4);
             break;
         }
 
         case hash("bgez"): {
             // bgez rs, label -> rs, 0x1, offset
-            tokens_t _t{tokens[0], tokens[1], "0x1", __encode_label(assembler, tokens[2])};
+            tokens_t _t{tokens[0], tokens[1], "0x1", __encode_label_to_offset(assembler, tokens[2], pointat)};
             *bin = __encode_itype(_t, 0x1);
             break;
         }
 
         case hash("bgezal"): {
             // bgezal rs, label-> rs, 0x11, offset
-            tokens_t _t{tokens[0], tokens[1], "0x11", __encode_label(assembler, tokens[2])};
+            tokens_t _t{tokens[0], tokens[1], "0x11", __encode_label_to_offset(assembler, tokens[2], pointat)};
             *bin = __encode_itype(_t, 0x1);
             break;
         }
 
         case hash("bgtz"): {
             // bgtz rs, label -> rs, 0x0, offset
-            tokens_t _t{tokens[0], tokens[1], "0x0", __encode_label(assembler, tokens[2])};
+            tokens_t _t{tokens[0], tokens[1], "0x0", __encode_label_to_offset(assembler, tokens[2], pointat)};
             *bin = __encode_itype(_t, 0x7);
             break;
         }
 
         case hash("blez"): {
             // blez rs, label -> rs, 0x0, offset
-            tokens_t _t{tokens[0], tokens[1], "0x0", __encode_label(assembler, tokens[2])};
+            tokens_t _t{tokens[0], tokens[1], "0x0", __encode_label_to_offset(assembler, tokens[2], pointat)};
             *bin = __encode_itype(_t, 0x6);
             break;
         }
 
         case hash("bltzal"): {
             // bltzal rs, label -> rs, 0x10, offset
-            tokens_t _t{tokens[0], tokens[1], "0x10", __encode_label(assembler, tokens[2])};
+            tokens_t _t{tokens[0], tokens[1], "0x10", __encode_label_to_offset(assembler, tokens[2], pointat)};
             *bin = __encode_itype(_t, 0x1);
             break;
         }
 
         case hash("bltz"): {
             // bltz rs, label -> rs, 0x0, offset
-            tokens_t _t{tokens[0], tokens[1], "0x0", tokens[2]};
+            tokens_t _t{tokens[0], tokens[1], "0x0", __encode_label_to_offset(assembler, tokens[2], pointat)};
             *bin = __encode_itype(_t, 0x1);
             break;
         }
 
         case hash("bne"): {
             // bne rs, rt, label -> rs, rt, offset
-            tokens[3] = __encode_label(assembler, tokens[3]);
+            tokens[3] = __encode_label_to_offset(assembler, tokens[3], pointat);
             *bin = __encode_itype(tokens, 0x5);
             break;
         }
@@ -461,14 +469,14 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin) {
 
         case hash("jalr"): {
             // jalr rs, rd -> rs, 0x0, rd, 0x0
-            tokens_t _t {tokens[0], tokens[1], "0x0", tokens[2], "0x0"};
+            tokens_t _t{tokens[0], tokens[1], "0x0", tokens[2], "0x0"};
             *bin = __encode_jtype(_t, 0x9);
             break;
         }
 
         case hash("jr"): {
             // jr rs -> rs, 0x0, 0x8
-            tokens_t _t {tokens[0], tokens[1], "0x0", "0x8"};
+            tokens_t _t{tokens[0], tokens[1], "0x0", "0x8"};
             *bin = __encode_itype(_t, 0x0);
             break;
         }
@@ -669,7 +677,7 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin) {
 
 bool __catalyze_content(Assembler *assembler) {
     bool inText = false, inData = false;
-    uint32_t pointat = 0x40000;
+    uint32_t pointat = 0;
 
     for (std::string line: assembler->content) {
         // remove leading and trailing spaces
@@ -706,7 +714,7 @@ bool __catalyze_content(Assembler *assembler) {
                 assembler->label_map[label] = pointat;
             } else {
                 assembler->text_section.push_back(line);
-                pointat += 4;
+                pointat += 1;
             }
         }
     }
@@ -715,13 +723,16 @@ bool __catalyze_content(Assembler *assembler) {
 }
 
 bool __parse(Assembler *assembler) {
+    uint32_t pointat = 0x0;
     for (auto line: assembler->text_section) {
         tokens_t tokens = tokenize_str(line);
         uint32_t bin_line;
+        pointat += 1;
 
-        if (!encode(assembler, tokens, &bin_line)) {
+        if (!encode(assembler, tokens, &bin_line, pointat)) {
             return 0;
         }
+
         assembler->bin.push_back(bin_line);
     }
     return true;
