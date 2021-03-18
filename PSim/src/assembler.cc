@@ -21,15 +21,6 @@ std::string removeComments(const std::string &line) {
     return ret;
 }
 
-int32_t arbstoi(const std::string &s) {
-    std::regex e("0[xX][0-9a-fA-F]+");
-    if (std::regex_match(s, e)) {
-        return std::stoi(s, nullptr, 16);
-    } else {
-        return std::stoi(s, nullptr, 10);
-    }
-}
-
 bool isLineEmpty(const std::string &line) {
     for (uint32_t index = 0; index < line.length(); index++) {
         if (!std::isspace(line[index]))

@@ -18,6 +18,8 @@
 #include <fstream>
 #include <sys/stat.h>
 #include <assert.h>
+#include <string>
+#include <regex>
 
 #define TIMEVAL2F(stamp) \
     ((stamp).tv_sec * 1000.0 + (stamp).tv_usec / 1000.0)
@@ -152,5 +154,13 @@ inline int currentPath(std::string &path) {
     path = std::string(cCurrentPath);
 }
 
+inline int32_t arbstoi(const std::string &s) {
+    std::regex e("0[xX][0-9a-fA-F]+");
+    if (std::regex_match(s, e)) {
+        return std::stoi(s, nullptr, 16);
+    } else {
+        return std::stoi(s, nullptr, 10);
+    }
+}
 
 #endif //PARCH_UTILS_HH
