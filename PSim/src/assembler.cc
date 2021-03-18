@@ -61,7 +61,7 @@ void __encode_address(const token_t &addr_str, uint32_t *rt, uint32_t *offset) {
 
     // search for offset in the token
     std::regex_search(addr_str, match, offset_rgx);
-    *offset = std::stoi(match[1]);
+    *offset = 0xFFFF & int16_t(std::stoi(match[1]));
 
     // search for rt register in the token
     std::regex_search(addr_str, match, rt_rgx);
@@ -90,8 +90,8 @@ uint32_t __encode_rtype(const tokens_t &tokens,
     uint32_t rs = __encode_reg(tokens[1]);
     uint32_t rt = __encode_reg(tokens[2]);
     uint32_t rd = __encode_reg(tokens[3]);
-    uint32_t shamt = std::stoi(tokens[4]);
-    uint32_t bin = (opcode << 26) | (rs << 21) | (rt << 16) |
+    uint32_t shamt = 0x1F & (std::stoi(tokens[4]));
+    uint32_t bin = (opcode << 26) | (rt << 21) | (rs << 16) |
                    (rd << 11) | (shamt << 6) | funct;
     PRINTF_DEBUG_VERBOSE(verbose,
                          "[ASM]\t[ENCODE]\tInstruction: %s  %s,%s,%s [%d]"
@@ -113,7 +113,7 @@ uint32_t __encode_jtype(const tokens_t &tokens, const uint32_t opcode) {
     //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     //|   opcode  |                      address                      |
     //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    uint32_t address = std::stoi(tokens[1]);
+    uint32_t address = 0xFFFF & std::stoi(tokens[1]);
     uint32_t bin = (opcode << 26) | address;
     PRINTF_DEBUG_VERBOSE(verbose,
                          "[ASM]\t[ENCODE]\tInstruction: %s  %s"
@@ -135,7 +135,7 @@ uint32_t __encode_itype(const tokens_t &tokens, const uint32_t opcode) {
 
     uint32_t rs = __encode_reg(tokens[1]);
     uint32_t rt = __encode_reg(tokens[2]);
-    uint32_t immediate = std::stoi(tokens[3]);
+    uint32_t immediate = 0xFFFF & int16_t(std::stoi(tokens[3]));
     uint32_t bin = (opcode << 26) | (rs << 21) | (rt << 16) | immediate;
     PRINTF_DEBUG_VERBOSE(verbose,
                          "[ASM]\t[ENCODE]\tInstruction: %s  %s,%s"
@@ -158,28 +158,38 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin) {
     token_t opcode_string = tokens[0];
     switch (hash(opcode_string.c_str())) {
 
-        case hash("add"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x20);
+        case hash("add"): {
+            // add rd, rs, rt -> rs, rt, rd, 0x0
+            tokens_t _t{tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x20);
             break;
+        }
 
-        case hash("addu"):
-            tokens.push_back("0x0");
-            *bin = __encode_rtype(tokens, 0x0, 0x21);
+        case hash("addu"): {
+            // addu rd, rs, rt -> rs, rt, rd, 0x0
+            tokens_t _t{tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
+            *bin = __encode_rtype(_t, 0x0, 0x21);
             break;
+        }
 
-        case hash("addi"):
-            *bin = __encode_itype(tokens, 0x8);
+        case hash("addi"): {
+            // addi rt, rs, imm -> rs, rt, imm
+            tokens_t _t{tokens[0], tokens[2], tokens[1], tokens[3]};
+            *bin = __encode_itype(_t, 0x8);
             break;
+        }
 
-        case hash("addiu"):
-            *bin = __encode_itype(tokens, 0x9);
+        case hash("addiu"): {
+            tokens_t _t{tokens[0], tokens[2], tokens[1], tokens[3]};
+            *bin = __encode_itype(_t, 0x9);
             break;
+        }
 
-        case hash("and"):
+        case hash("and"): {
             tokens.push_back("0x0");
             *bin = __encode_rtype(tokens, 0x0, 0x24);
             break;
+        }
 
         case hash("andi"):
             *bin = __encode_itype(tokens, 0xc);
