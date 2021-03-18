@@ -28,7 +28,6 @@ struct MMBar {
     uint32_t static_end_addr;
     uint32_t dynamic_end_addr;
     bool initialized = false;
-    bool staticloaded = false;
 };
 
 void mmbar_init(MMBar *mmBar);
