@@ -166,4 +166,6 @@ void options_parse(Options *options, int argc, char **argv) {
                 EXIT_WITH_MSG("[!] unknown error, exit...\n");
         }
     }
+
+    options_validate(options);
 }
