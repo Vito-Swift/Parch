@@ -33,37 +33,36 @@ TEST_P(AssemblerTest, HandleTrueReturn) {
 
     std::string path;
     currentPath(path);
-    PRINTF_STAMP("Test execution path: %s\n", path.c_str());
-    PRINTF_STAMP("ELF: %s\n", param.ELF_file.c_str());
-    PRINTF_STAMP("TST: %s\n", param.tst_file.c_str());
+    printf("Test execution path: %s\n", path.c_str());
+    printf("ELF: %s\n", param.ELF_file.c_str());
+    printf("TST: %s\n", param.tst_file.c_str());
 
-    std::vector<uint32_t> tst_bin;
+    std::vector<std::bitset<32>> tst_bin;
     ASSERT_TRUE(isFileExist(param.tst_file));
     std::ifstream infile(param.tst_file);
     std::string line;
     while (std::getline(infile, line)) {
-        uint32_t bin = std::stoul(line, nullptr, 2);
-        tst_bin.push_back(bin);
+        if (!line.empty()) {
+            std::bitset<32> bin(line);
+            tst_bin.push_back(bin);
+        }
     }
 
     Assembler assembler;
     assembler_init(&assembler, param.ELF_file, true);
     assembler_exec(&assembler);
 
-    if (tst_bin.size() != assembler.bin.size()) {
-
-    }
     ASSERT_EQ(tst_bin.size(), assembler.bin.size())
-    << "Diagnose:\n\tTST Binary Lines: " << tst_bin.size()
-    << "\t\tAssembled Binary Lines: " << assembler.bin.size() << "\n\n";
+                                << "Diagnose:\n\tTST Binary Lines: " << tst_bin.size()
+                                << "\t\tAssembled Binary Lines: " << assembler.bin.size() << "\n\n";
 
     for (uint32_t i = 0; i < tst_bin.size(); i++) {
-        EXPECT_EQ(tst_bin[i], assembler.bin[i])
-        << "Diagnose:\n\tFile: " << param.tst_file << "\n\t"
-        << "Line: " << i << "\n\t"
-        << "TST Bin: " << std::bitset<32>(tst_bin[i]) << "\n\t"
-        << "ASM Bin: " << std::bitset<32>(assembler.bin[i]) << "\n\t"
-        << "ASM Text: " << assembler.text_section[i] << "\n\n";
+        EXPECT_EQ(tst_bin[i], std::bitset<32>(assembler.bin[i]))
+                            << "Diagnose:\n\tFile: " << param.tst_file << "\n\t"
+                            << "Line: " << i << "\n\t"
+                            << "TST Bin: " << tst_bin[i] << "\n\t"
+                            << "ASM Bin: " << std::bitset<32>(assembler.bin[i]) << "\n\t"
+                            << "ASM Text: " << assembler.text_section[i] << "\n\n";
     }
 
     assembler_free(&assembler);

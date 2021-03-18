@@ -12,13 +12,22 @@
 std::map<std::string, uint32_t> reg_map;
 
 bool isLineALabel(const std::string &line) {
-    std::regex e("(.*):$");
+    std::regex e("(.+):(.*)");
     return std::regex_match(line, e);
 }
 
 std::string removeComments(const std::string &line) {
     std::string ret = line.substr(0, line.find("#"));
     return ret;
+}
+
+int32_t arbstoi(const std::string &s) {
+    std::regex e("0[xX][0-9a-fA-F]+");
+    if (std::regex_match(s, e)) {
+        return std::stoi(s, nullptr, 16);
+    } else {
+        return std::stoi(s, nullptr, 10);
+    }
 }
 
 bool isLineEmpty(const std::string &line) {
@@ -51,17 +60,17 @@ tokens_t tokenize_str(const std::string &line) {
 uint32_t __encode_reg(const token_t &reg_str) {
     token_t reg_key = reg_str;
     reg_key.erase(std::remove(reg_key.begin(), reg_key.end(), '$'), reg_key.end());
-    return reg_map[reg_key];
+    return 0x1F & reg_map[reg_key];
 }
 
 void __encode_address(const token_t &addr_str, std::string *rs, uint32_t *offset) {
-    std::regex rt_rgx("\\d+\\(\\$(\\w\\d)\\)");
-    std::regex offset_rgx("(\\d+)\\(\\$\\w\\d\\)");
+    std::regex rt_rgx("\\-?\\d+\\(\\$(\\w+\\d?)\\)");
+    std::regex offset_rgx("(\\-?\\d+)\\(\\$\\w+\\d?\\)");
     std::smatch match;
 
     // search for offset in the token
     std::regex_search(addr_str, match, offset_rgx);
-    *offset = 0xFFFF & int16_t(std::stoi(match[1]));
+    *offset = 0xFFFF & int16_t(arbstoi(match[1]));
 
     // search for rt register in the token
     std::regex_search(addr_str, match, rt_rgx);
@@ -74,10 +83,10 @@ std::string __encode_label(Assembler *assembler, const token_t &label_str) {
     return std::to_string(assembler->label_map[label_str]);
 }
 
-std::string __encode_label_to_offset(Assembler* assembler, const token_t& label_str, uint32_t pointat) {
+std::string __encode_label_to_offset(Assembler *assembler, const token_t &label_str, uint32_t pointat) {
     if (assembler->label_map.find(label_str) == assembler->label_map.end())
         EXIT_WITH_MSG("Assembly contains not defined label: %s\n", label_str.c_str());
-    int32_t offset = assembler->label_map[label_str] - pointat;
+    int32_t offset = (assembler->label_map[label_str] - pointat);
     return std::to_string(offset);
 }
 
@@ -95,8 +104,8 @@ uint32_t __encode_rtype(const tokens_t &tokens,
     uint32_t rs = __encode_reg(tokens[1]);
     uint32_t rt = __encode_reg(tokens[2]);
     uint32_t rd = __encode_reg(tokens[3]);
-    uint32_t shamt = 0x1F & (std::stoi(tokens[4]));
-    uint32_t bin = (opcode << 26) | (rt << 21) | (rs << 16) |
+    uint32_t shamt = 0x1F & (arbstoi(tokens[4]));
+    uint32_t bin = (opcode << 26) | (rs << 21) | (rt << 16) |
                    (rd << 11) | (shamt << 6) | funct;
     PRINTF_DEBUG_VERBOSE(verbose,
                          "[ASM]\t[ENCODE]\tInstruction: %s  %s,%s,%s [%d]"
@@ -118,7 +127,7 @@ uint32_t __encode_jtype(const tokens_t &tokens, const uint32_t opcode) {
     //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     //|   opcode  |                      address                      |
     //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    uint32_t address = 0xFFFF & std::stoi(tokens[1]);
+    uint32_t address = 0x3FFFFFF & arbstoi(tokens[1]);
     uint32_t bin = (opcode << 26) | address;
     PRINTF_DEBUG_VERBOSE(verbose,
                          "[ASM]\t[ENCODE]\tInstruction: %s  %s"
@@ -140,7 +149,7 @@ uint32_t __encode_itype(const tokens_t &tokens, const uint32_t opcode) {
 
     uint32_t rs = __encode_reg(tokens[1]);
     uint32_t rt = __encode_reg(tokens[2]);
-    uint32_t immediate = 0xFFFF & int16_t(std::stoi(tokens[3]));
+    uint32_t immediate = 0xFFFF & int16_t(arbstoi(tokens[3]));
     uint32_t bin = (opcode << 26) | (rs << 21) | (rt << 16) | immediate;
     PRINTF_DEBUG_VERBOSE(verbose,
                          "[ASM]\t[ENCODE]\tInstruction: %s  %s,%s,%s"
@@ -336,21 +345,21 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t poin
 
         case hash("sub"): {
             // sub rd, rs, rt -> rs, rt, rd, 0x0
-            tokens_t _t{tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
+            tokens_t _t{tokens[0], tokens[2], tokens[3], tokens[1], "0x0"};
             *bin = __encode_rtype(_t, 0x0, 0x22);
             break;
         }
 
         case hash("subu"): {
             // subu rd, rs, rt -> rs, rt, rd, 0x0
-            tokens_t _t{tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
+            tokens_t _t{tokens[0], tokens[2], tokens[3], tokens[1], "0x0"};
             *bin = __encode_rtype(_t, 0x0, 0x23);
             break;
         }
 
         case hash("xor"): {
             // xor rd, rs, rt -> rs, rt, rd, 0x0
-            tokens_t _t{tokens[0], tokens[3], tokens[1], tokens[2], "0x0"};
+            tokens_t _t{tokens[0], tokens[2], tokens[3], tokens[1], "0x0"};
             *bin = __encode_rtype(_t, 0x0, 0x26);
             break;
         }
@@ -636,28 +645,28 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t poin
         }
 
         case hash("mfhi"): {
-            // mfhi rd -> 0x0, rd, 0x0
-            tokens_t _t{tokens[0], "0x0", tokens[1], "0x0"};
+            // mfhi rd -> 0x0, 0x0, rd, 0x0
+            tokens_t _t{tokens[0], "$zero", "$zero", tokens[1], "0x0"};
             *bin = __encode_rtype(_t, 0x0, 0x10);
         }
             break;
 
         case hash("mflo"): {
             // mflo rd -> 0x0, rd, 0x0
-            tokens_t _t{tokens[0], "0x0", tokens[1], "0x0"};
+            tokens_t _t{tokens[0], "$zero", "$zero", tokens[1], "0x0"};
             *bin = __encode_rtype(_t, 0x0, 0x12);
         }
             break;
 
         case hash("mthi"): {
             // mthi rs -> rs, 0x0, 0x11
-            tokens_t _t{tokens[0], tokens[1], "0x11"};
+            tokens_t _t{tokens[0], tokens[1], "$zero", "0x11"};
             *bin = __encode_itype(_t, 0x0);
         }
             break;
 
         case hash("mtlo"): {
-            tokens_t _t{tokens[0], tokens[1], "0x13"};
+            tokens_t _t{tokens[0], tokens[1], "$zero", "0x13"};
             *bin = __encode_itype(_t, 0x0);
         }
             break;
@@ -676,8 +685,23 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t poin
 }
 
 bool __catalyze_content(Assembler *assembler) {
+    bool contentAllText = true;
     bool inText = false, inData = false;
-    uint32_t pointat = 0;
+    uint32_t pointat = 0x100000;
+
+    for (std::string line: assembler->content) {
+        line = std::regex_replace(line, std::regex("^[ \t]+"), "");
+        line = std::regex_replace(line, std::regex("[ \t]+$"), "");
+        line = removeComments(line);
+
+        if (isLineEmpty(line))
+            continue;
+
+        if (hash(line.c_str()) == hash(".text")) {
+            contentAllText = false;
+            break;
+        }
+    }
 
     for (std::string line: assembler->content) {
         // remove leading and trailing spaces
@@ -688,30 +712,45 @@ bool __catalyze_content(Assembler *assembler) {
         if (isLineEmpty(line))
             continue;
 
-        switch (hash(line.c_str())) {
+        if (!contentAllText) {
+            switch (hash(line.c_str())) {
 
-            case hash(".text"):
-                PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[DT]\t\t%s\n", line.c_str());
-                inText = true;
-                inData = false;
-                continue;
+                case hash(".text"):
+                    PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[DT]\t\t%s\n", line.c_str());
+                    inText = true;
+                    inData = false;
+                    continue;
 
-            case hash(".data"):
-                PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[DD]\t\t%s\n", line.c_str());
-                inText = false;
-                inData = true;
-                continue;
+                case hash(".data"):
+                    PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[DD]\t\t%s\n", line.c_str());
+                    inText = false;
+                    inData = true;
+                    continue;
 
-            default:
-                break;
+                default:
+                    break;
 
+            }
         }
 
-        if (inText) {
+        if (inText || contentAllText) {
             if (isLineALabel(line)) {
-                std::string label = line.substr(0, line.find(":"));
+                std::regex label_rgx("(.+):.*");
+                std::regex remainder_rgx(".+:(.*)");
+                std::smatch match;
+
+                // search for label in the line
+                std::regex_search(line, match, label_rgx);
+                std::string label = match[1];
+
+                // search for remaining content in the line
+                std::regex_search(line, match, remainder_rgx);
+                std::string line_remainder = match[1];
+
                 PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[LABEL]\t\t%s\t----->\tpoint_at: 0x%X\n", label.c_str(), pointat);
                 assembler->label_map[label] = pointat;
+                if (!line_remainder.empty())
+                    assembler->text_section.push_back(line);
             } else {
                 assembler->text_section.push_back(line);
                 pointat += 1;
@@ -723,7 +762,7 @@ bool __catalyze_content(Assembler *assembler) {
 }
 
 bool __parse(Assembler *assembler) {
-    uint32_t pointat = 0x0;
+    uint32_t pointat = 0x100000;
     for (auto line: assembler->text_section) {
         tokens_t tokens = tokenize_str(line);
         uint32_t bin_line;
