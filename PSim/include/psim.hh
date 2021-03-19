@@ -11,10 +11,12 @@
 
 #include "assembler.hh"
 #include "options.hh"
+#include "mmbar.hh"
 
 struct Simulator {
     Assembler assembler;
     Options user_options;
+    std::vector<uint32_t> bin;
 };
 
 void simulator_init(Simulator *simulator, int argc, char **argv);

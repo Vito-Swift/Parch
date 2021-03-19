@@ -12,6 +12,7 @@ void __reset_mmcounters(MMBar *mmBar) {
     mmBar->text_end_addr = MEM_TEXT_START;
     mmBar->static_end_addr = MEM_DATA_START;
     mmBar->dynamic_end_addr = MEM_DATA_START;
+//    register_file[sp] =
 }
 
 bool mmbar_write(MMBar* mmBar, uint32_t addr, uint8_t c) {
