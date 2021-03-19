@@ -19,7 +19,6 @@ void simulator_init(Simulator *simulator, int argc, char **argv) {
 }
 
 #define get_opcode(bin) (bin >> 26)
-#define get_funct(bin) (bin & 0x1F)
 
 void __decode_itype(uint32_t bin, uint32_t *rs, uint32_t *rt, uint32_t *imm) {
 
@@ -34,17 +33,35 @@ void __decode_jtype(uint32_t bin, uint32_t *offset) {
 }
 
 bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
+#define get_funct(bin) (bin & 0x1F)
+#define get_rs(bin) ((bin >> 21) & 0x1F)
+#define get_rt(bin) ((bin >> 16) & 0x1F)
+#define get_rd(bin) ((bin >> 11) & 0x1F)
+#define get_shamt(bin) ((bin >> 6) & 0x1F)
+
     uint32_t funct = get_funct(bin);
+    uint32_t rs = get_rs(bin);
+    uint32_t rt = get_rt(bin);
+    uint32_t rd = get_rd(bin);
+    uint32_t shamt = get_shamt(bin);
 
     switch (funct) {
 
         case 0: {
             // sll
+            register_file[rd] = register_file[rt] << shamt;
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: sll %d, %d, %d\n",
+                                 rd, rt, shamt);
             break;
         }
 
         case 2: {
             // srl
+            register_file[rd] = register_file[rt] >> shamt;
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: srl %d, %d, %d\n",
+                                 rd, rt, shamt);
             break;
         }
 
@@ -206,6 +223,11 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
     }
 
     return 1;
+#undef get_funct
+#undef get_rs
+#undef get_rt
+#undef get_rd
+#undef get_shamt
 }
 
 bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
@@ -380,7 +402,6 @@ void __simulator_exec_run(Simulator *simulator) {
 void __simulator_exec_finalize(Simulator *simulator) {
     mmbar_free(&simulator->mmBar);
 }
-
 
 void simulator_exec(Simulator *simulator) {
     if (!simulator->user_options.from_asm) {

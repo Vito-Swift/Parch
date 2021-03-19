@@ -11,4 +11,11 @@ target_link_libraries(ttassembler
         pthread)
 gtest_discover_tests(ttassembler)
 
+add_executable(ttsimulator ttsimulator.cc)
+target_link_libraries(ttsimulator
+        ${GTEST_BOTH_LIBRARIES}
+        SIMLIB
+        pthread)
+gtest_discover_tests(ttsimulator)
+
 enable_testing()

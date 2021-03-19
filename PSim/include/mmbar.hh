@@ -34,8 +34,6 @@ void mmbar_init(MMBar *mmBar);
 
 void mmbar_load_text(MMBar *mmBar, std::vector<std::uint32_t> bin);
 
-void mmbar_load_static(MMBar *mmbar);
-
 void mmbar_free(MMBar *mmBar);
 
 bool mmbar_write(MMBar* mmBar, uint32_t addr);
