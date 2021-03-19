@@ -8,4 +8,4 @@
 
 #include "register.hh"
 
-uint32_t register_file[REG_NUM] = {0};
+int32_t register_file[REG_NUM] = {0};

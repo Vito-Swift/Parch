@@ -470,7 +470,7 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t poin
         case hash("jalr"): {
             // jalr rs, rd -> rs, 0x0, rd, 0x0
             tokens_t _t{tokens[0], tokens[1], "0x0", tokens[2], "0x0"};
-            *bin = __encode_jtype(_t, 0x9);
+            *bin = __encode_rtype(_t, 0x0, 0x9);
             break;
         }
 

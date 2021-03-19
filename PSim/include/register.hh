@@ -13,7 +13,7 @@
 
 #include "utils.hh"
 
-#define REG_NUM 32
+#define REG_NUM 34
 
 enum register_types {
     zero,                                   // constant 0
@@ -27,7 +27,8 @@ enum register_types {
     gp,                                     // pointer to global area
     sp,                                     // stack pointer
     fp,                                     // frame pointer
-    ra,                                     // return address
+    ra,                                     // return address,
+    HI, LO                                  // multiplication / division result
 };
 
 inline std::map<std::string, uint32_t> create_regparse_map() {
@@ -45,10 +46,12 @@ inline std::map<std::string, uint32_t> create_regparse_map() {
     rgm["sp"] = sp;
     rgm["fp"] = fp;
     rgm["ra"] = ra;
+    rgm["HI"] = HI,
+    rgm["LO"] = LO;
     return rgm;
 }
 
-extern uint32_t register_file[REG_NUM];
+extern int32_t register_file[REG_NUM];
 
 
 #endif //PARCH_REGISTER_HH
