@@ -72,6 +72,8 @@ void options_init(Options *options) {
     options->ELF = NULL;
     options->from_elf = false;
     options->from_std_in = false;
+    options->full_flow = false;
+    options->from_asm = false;
 }
 
 void options_free(Options *options) {

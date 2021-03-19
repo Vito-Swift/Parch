@@ -42,4 +42,8 @@ bool mmbar_write(MMBar* mmBar, uint32_t addr);
 
 uint8_t mmbar_read(MMBar* mmBar, uint32_t addr);
 
+uint32_t mmbar_readu32(MMBar *mmBar, uint32_t addr);
+
+bool mmbar_writeu32(MMBar *mmBar, uint32_t addr, uint32_t e);
+
 #endif //PARCH_MMBAR_HH
