@@ -36,12 +36,16 @@ void mmbar_load_text(MMBar *mmBar, std::vector<std::uint32_t> bin);
 
 void mmbar_free(MMBar *mmBar);
 
-bool mmbar_write(MMBar* mmBar, uint32_t addr);
+bool mmbar_write(MMBar *mmBar, uint32_t addr, uint8_t e);
 
-uint8_t mmbar_read(MMBar* mmBar, uint32_t addr);
-
-uint32_t mmbar_readu32(MMBar *mmBar, uint32_t addr);
+bool mmbar_writeu16(MMBar *mmBar, uint32_t addr, uint16_t e);
 
 bool mmbar_writeu32(MMBar *mmBar, uint32_t addr, uint32_t e);
+
+uint8_t mmbar_read(MMBar *mmBar, uint32_t addr);
+
+uint16_t mmbar_readu16(MMBar *mmBar, uint32_t addr);
+
+uint32_t mmbar_readu32(MMBar *mmBar, uint32_t addr);
 
 #endif //PARCH_MMBAR_HH

@@ -27,18 +27,6 @@ int32_t art_rshift(int x, int n) {
         return x >> n;
 }
 
-void __decode_itype(uint32_t bin, uint32_t *rs, uint32_t *rt, uint32_t *imm) {
-
-}
-
-void __decode_rtype(uint32_t bin, uint32_t *rs, uint32_t *rt, uint32_t *rd, uint32_t *shamt) {
-
-}
-
-void __decode_jtype(uint32_t bin, uint32_t *offset) {
-
-}
-
 bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
 #define get_funct(bin) (bin & 0x1F)
 #define get_rs(bin) ((bin >> 21) & 0x1F)
@@ -120,6 +108,9 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // jalr
             register_file[rd] = simulator->pc + 4;
             simulator->pc = register_file[rs];
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: jalr %d(%d), %d(%d)\n",
+                                 rs, register_file[rs], rd, register_file[rd]);
             break;
         }
 
@@ -398,81 +389,229 @@ bool decode(Simulator *simulator, uint32_t b) {
 
         case 0x2: {
             // j target
+            uint32_t offset = b & 0x3FFFFFF;
+            simulator->pc = offset;
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: j %d\n", offset);
             break;
         }
 
         case 0x3: {
             // jal target
+            register_file[ra] = simulator->pc + 4;
+            uint32_t offset = b & 0x3FFFFFF;
+            simulator->pc = offset;
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: jal %d\n", offset);
             break;
         }
 
+#define get_rs(bin) ((bin >> 26) & 0x1F)
+#define get_rt(bin) ((bin >> 21) & 0x1F)
+#define get_imm(bin) ((int16_t)(bin & 0xFFFF))
+
         case 0x4: {
             // beq rs, rt, offset
+            uint32_t rs = get_rs(b);
+            uint32_t rt = get_rt(b);
+            int16_t imm = get_imm(b);
+
+            if (register_file[rs] == register_file[rt])
+                simulator->pc += imm;
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: beq %d(%d), %d(%d), %d\n",
+                                 rs, register_file[rs], rt, register_file[rt], imm);
             break;
         }
 
         case 0x5: {
             // bne, rs, rt, offset
+            uint32_t rs = get_rs(b);
+            uint32_t rt = get_rt(b);
+            int16_t imm = get_imm(b);
+
+            if (register_file[rs] != register_file[rt])
+                simulator->pc += imm;
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: bne %d(%d), %d(%d), %d\n",
+                                 rs, register_file[rs], rt, register_file[rt], imm);
+
             break;
         }
 
         case 0x6: {
             // blez, rs, 0x0, offset
+            uint32_t rs = get_rs(b);
+            int16_t imm = get_imm(b);
+
+            if (register_file[rs] <= 0)
+                simulator->pc += imm;
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: blez %d(%d), %d\n",
+                                 rs, register_file[rs], imm);
             break;
         }
 
         case 0x7: {
             // bgtz, rs, 0x0, offset
+            uint32_t rs = get_rs(b);
+            int16_t imm = get_imm(b);
+
+            if (register_file[rs] > 0)
+                simulator->pc += imm;
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: bgtz %d(%d), %d\n",
+                                 rs, register_file[rs], imm);
             break;
         }
 
         case 0x8: {
             // addi, rs, rt, imm
+            uint32_t rs = get_rs(b);
+            uint32_t rt = get_rt(b);
+            int16_t imm = get_imm(b);
+
+            int64_t result = register_file[rs] + imm;
+            if ((result & ~(0xFFFFFFFF)) != 0) {
+                EXIT_WITH_MSG("OVERFLOW: addition result overflow!\n");
+            }
+
+            register_file[rt] = (int32_t) result;
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: addi %d, %d(%d), %d\n",
+                                 rt, rs, register_file[rs], imm);
             break;
         }
 
         case 0x9: {
             // addiu rs, rt, imm
+            uint32_t rs = get_rs(b);
+            uint32_t rt = get_rt(b);
+            int16_t imm = get_imm(b);
+
+            register_file[rt] = register_file[rs] + imm;
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: addiu %d, %d(%d), %d\n",
+                                 rt, rs, register_file[rs], imm);
             break;
         }
 
         case 0xa: {
             // slti rs, rt, imm
+            uint32_t rs = get_rs(b);
+            uint32_t rt = get_rt(b);
+            int16_t imm = get_imm(b);
+
+            if (register_file[rs] < imm)
+                register_file[rt] = 1;
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: slti %d, %d(%d), %d\n",
+                                 rt, rs, register_file[rs], imm);
             break;
         }
 
         case 0xb: {
             // sltiu rs, rt, imm
+            uint32_t rs = get_rs(b);
+            uint32_t rt = get_rt(b);
+            uint16_t imm = (uint16_t) get_imm(b);
+
+            if ((uint32_t) register_file[rs] < (uint16_t) imm)
+                register_file[rt] = 1;
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: sltiu %d, %d(%d), %d\n",
+                                 rt, rs, register_file[rs], imm);
             break;
         }
 
         case 0xc: {
             // andi rs, rt, imm
+            uint32_t rs = get_rs(b);
+            uint32_t rt = get_rt(b);
+            uint16_t imm = (uint16_t) get_imm(b);
+
+            register_file[rt] = register_file[rs] & imm;
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: andi %d, %d(%d), %d\n",
+                                 rt, rs, register_file[rs], imm);
             break;
         }
 
         case 0xd: {
             // ori rs, rt, imm
+            uint32_t rs = get_rs(b);
+            uint32_t rt = get_rt(b);
+            uint16_t imm = (uint16_t) get_imm(b);
+
+            register_file[rt] = register_file[rs] | imm;
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: ori %d, %d(%d), %d\n",
+                                 rt, rs, register_file[rs], imm);
             break;
         }
 
         case 0xe: {
             // xori rs, rt, imm
+            uint32_t rs = get_rs(b);
+            uint32_t rt = get_rt(b);
+            uint16_t imm = (uint16_t) get_imm(b);
+
+            register_file[rt] = register_file[rs] ^ imm;
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: xori %d, %d(%d), %d\n",
+                                 rt, rs, register_file[rs], imm);
             break;
         }
 
         case 0xf: {
             // lui 0x0, rt, imm
+            uint32_t rt = get_rt(b);
+            uint16_t imm = (uint16_t) get_imm(b);
+
+            register_file[rt] = (imm << 16);
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: lui %d, %d\n",
+                                 rt, imm);
             break;
         }
 
         case 0x20: {
             // lb
+            uint32_t rs = get_rs(b);
+            uint32_t rt = get_rt(b);
+            uint16_t imm = (uint16_t) get_imm(b);
+
+            register_file[rt] = (int8_t) mmbar_read(&simulator->mmBar, imm + register_file[rs]);
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: lb %d, %d[%d(%d)]\n",
+                                 rt, imm, rs, register_file[rs]);
             break;
         }
 
         case 0x21: {
             // lh
+            uint32_t rs = get_rs(b);
+            uint32_t rt = get_rt(b);
+            uint16_t imm = (uint16_t) get_imm(b);
+
+            register_file[rt] = (int16_t) mmbar_read(&simulator->mmBar, imm + register_file[rs]);
+
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t\t[RC]\tExecution: lh %d, %d[%d(%d)]\n",
+                                 rt, imm, rs, register_file[rs]);
             break;
         }
 
@@ -520,6 +659,10 @@ bool decode(Simulator *simulator, uint32_t b) {
             // sw
             break;
         }
+
+#undef get_rs
+#undef get_rt
+#undef get_imm
 
         default: {
             PRINTF_ERR_STAMP("[SIM]\t\tUnrecognized opcode: %d\n", get_opcode(b));

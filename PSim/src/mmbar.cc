@@ -32,22 +32,28 @@ bool mmbar_write(MMBar *mmBar, uint32_t addr, uint8_t c) {
     return true;
 }
 
-uint8_t mmbar_read(MMBar *mmBar, uint32_t addr) {
-
+bool mmbar_writeu16(MMBar *mmBar, uint32_t addr, uint16_t e) {
     if (!mmBar->initialized) {
         PRINTF_DEBUG_VERBOSE(verbose,
                              "[MMBAR]\t\tMemory has not been initialized yet!\n");
-        return 0x0;
+        return false;
     }
 
-    if (addr >= MEM_SIZE) {
+    if (addr + 2 >= MEM_SIZE) {
         PRINTF_DEBUG_VERBOSE(verbose,
-                             "[MMBAR]\t\tRead address index out of range: %d\n",
+                             "[MMBAR]\t\tWrite u16 address index out of range: %d\n",
                              addr);
-        return 0x0;
+        return false;
     }
 
-    return mmBar->_memory[addr];
+#define LOLO_MASK 0xFFUL
+    uint8_t bllh = (e >> 8) & LOLO_MASK;
+    uint8_t blll = e & LOLO_MASK;
+
+    mmBar->_memory[addr] = blll;
+    mmBar->_memory[addr + 1] = bllh;
+
+    return 1;
 }
 
 bool mmbar_writeu32(MMBar *mmBar, uint32_t addr, uint32_t e) {
@@ -76,6 +82,42 @@ bool mmbar_writeu32(MMBar *mmBar, uint32_t addr, uint32_t e) {
     mmBar->_memory[addr + 3] = blhh;
 
     return 1;
+}
+
+uint8_t mmbar_read(MMBar *mmBar, uint32_t addr) {
+
+    if (!mmBar->initialized) {
+        PRINTF_DEBUG_VERBOSE(verbose,
+                             "[MMBAR]\t\tMemory has not been initialized yet!\n");
+        return 0x0;
+    }
+
+    if (addr >= MEM_SIZE) {
+        PRINTF_DEBUG_VERBOSE(verbose,
+                             "[MMBAR]\t\tRead address index out of range: %d\n",
+                             addr);
+        return 0x0;
+    }
+
+    return mmBar->_memory[addr];
+}
+
+uint16_t mmbar_readu16(MMBar *mmBar, uint32_t addr) {
+    if (!mmBar->initialized) {
+        PRINTF_DEBUG_VERBOSE(verbose,
+                             "[MMBAR]\t\tMemory has not been initialized yet!\n");
+        return 0x0;
+    }
+
+    if (addr + 2 >= MEM_SIZE) {
+        PRINTF_DEBUG_VERBOSE(verbose,
+                             "[MMBAR]\t\tWrite u16 address index out of range: %d\n",
+                             addr);
+        return 0x0;
+    }
+
+    return (mmBar->_memory[addr + 1] << 8) |
+           (mmBar->_memory[addr]);
 }
 
 uint32_t mmbar_readu32(MMBar *mmBar, uint32_t addr) {
