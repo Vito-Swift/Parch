@@ -22,6 +22,7 @@
 #include "options.hh"
 #include "opcode.h"
 #include "register.hh"
+#include "mmbar.hh"
 
 struct Assembler {
     std::string ELF_path;
@@ -29,7 +30,8 @@ struct Assembler {
     std::vector<std::string> text_section;
     std::vector<uint32_t> bin;
     std::map<std::string, uint32_t> label_map;
-    Options* user_options;
+    Options *user_options;
+    MMBar *mmBar;
 };
 
 void assembler_init(Assembler *assembler, std::string ELF_path, bool loadFromELF);

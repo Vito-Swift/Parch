@@ -140,6 +140,11 @@ uint32_t mmbar_readu32(MMBar *mmBar, uint32_t addr) {
            (mmBar->_memory[addr]);
 }
 
+void mmbar_load_static_u8(MMBar *mmBar, uint8_t e) {
+    mmBar->_memory[(mmBar->static_end_addr)++] = e;
+    mmBar->dynamic_end_addr++;
+}
+
 void mmbar_load_text(MMBar *mmBar, std::vector<std::uint32_t> bin) {
     for (uint32_t bl: bin) {
         mmbar_writeu32(mmBar, mmBar->text_end_addr, bl);

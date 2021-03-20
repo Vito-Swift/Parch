@@ -663,6 +663,8 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t poin
             break;
 
         case hash("syscall"):
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[ASM]\t[ENCODE]\tInstruction: syscall\n");
             *bin = 0xc;
             break;
 
@@ -672,6 +674,8 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t poin
 
     }
 
+    PRINTF_DEBUG_VERBOSE(verbose,
+                         "Text location: %d\n", (pointat << 2));
     return 1;
 }
 
@@ -749,6 +753,97 @@ bool __catalyze_content(Assembler *assembler) {
                 assembler->text_section.push_back(line);
                 pointat += 1;
             }
+        } else if (inData && assembler->user_options->full_flow) {
+            std::regex label_rgx("(.+):\\s+\\..+\\s+.+");
+            std::regex type_rgx(".+:\\s+(\\.((asciiz)|(ascii)|(word)|(byte)|(half)))\\s+.+");
+            std::regex data_rgx(".+:\\s+\\.(asciiz|ascii|word|byte|half)\\s+(.+)");
+            std::smatch match;
+
+            // search for label in the line
+            std::regex_search(line, match, label_rgx);
+            std::string label = match[1];
+
+            // search for type in the line
+            std::regex_search(line, match, type_rgx);
+            std::string type = match[1];
+
+            // search for data in the line
+            std::regex_search(line, match, data_rgx);
+            std::string data = match[2];
+
+            PRINTF_DEBUG_VERBOSE(verbose, "[ASM]\t[DATA]\t\t%s:\t%s\t%s\n",
+                                 label.c_str(), type.c_str(), data.c_str());
+
+            switch (hash(type.c_str())) {
+                case hash(".ascii"): {
+                    std::regex ctrgx("\\\"(.*)\\\"");
+                    std::regex_search(data, match, ctrgx);
+
+                    std::string escaped_string = unescape(match[1]);
+                    std::string::const_iterator it = escaped_string.begin();
+
+                    while (it != escaped_string.end()) {
+                        char c = *it++;
+                        mmbar_load_static_u8(assembler->mmBar, c);
+                    }
+
+                    break;
+                }
+
+                case hash(".asciiz"): {
+                    std::regex ctrgx("\\\"(.*)\\\"");
+                    std::regex_search(data, match, ctrgx);
+
+                    std::string escaped_string = unescape(match[1]);
+                    std::string::const_iterator it = escaped_string.begin();
+
+                    while (it != escaped_string.end()) {
+                        char c = *it++;
+                        mmbar_load_static_u8(assembler->mmBar, c);
+                    }
+                    mmbar_load_static_u8(assembler->mmBar, '\0');
+
+                    break;
+                }
+
+                case hash(".word"): {
+                    uint32_t d = (uint32_t) arbstoi(data);
+#define LOLO_MASK 0xFFUL
+                    uint8_t blhh = d >> 24;
+                    uint8_t blhl = (d >> 16) & LOLO_MASK;
+                    uint8_t bllh = (d >> 8) & LOLO_MASK;
+                    uint8_t blll = d & LOLO_MASK;
+
+                    mmbar_load_static_u8(assembler->mmBar, blll);
+                    mmbar_load_static_u8(assembler->mmBar, bllh);
+                    mmbar_load_static_u8(assembler->mmBar, blhl);
+                    mmbar_load_static_u8(assembler->mmBar, blhh);
+
+                    break;
+                }
+
+                case hash(".byte"): {
+                    uint8_t d = (uint8_t) arbstoi(data);
+                    mmbar_load_static_u8(assembler->mmBar, d);
+                    break;
+                }
+
+                case hash(".half"): {
+                    uint16_t d = (uint16_t) arbstoi(data);
+                    uint8_t hi = d >> 8;
+                    uint8_t lo = d & LOLO_MASK;
+
+                    mmbar_load_static_u8(assembler->mmBar, lo);
+                    mmbar_load_static_u8(assembler->mmBar, hi);
+
+                    break;
+                }
+
+                default: {
+                    EXIT_WITH_MSG("[ASM]\t[DATA]\tUnrecognized data type: %s\n", type.c_str());
+                }
+            }
+
         }
     }
 
@@ -760,7 +855,7 @@ bool __parse(Assembler *assembler) {
     for (auto line: assembler->text_section) {
         tokens_t tokens = tokenize_str(line);
         uint32_t bin_line;
-        pointat += 1;
+        pointat++;
 
         if (!encode(assembler, tokens, &bin_line, pointat)) {
             return 0;

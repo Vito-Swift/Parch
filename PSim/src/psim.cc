@@ -8,17 +8,45 @@
 
 #include "psim.hh"
 
+void load_input(Simulator *simulator) {
+    if (!isFileExist(simulator->user_options.input_file)) {
+        EXIT_WITH_MSG("[SIM]\t\tFailed to read input file\n");
+    }
+
+    std::ifstream infile(simulator->user_options.input_file);
+    std::string line;
+    while (std::getline(infile, line)) {
+        simulator->inputs.push_back(line);
+    }
+}
+
 void simulator_init(Simulator *simulator, int argc, char **argv) {
     options_init(&simulator->user_options);
     options_parse(&simulator->user_options, argc, argv);
+
+    mmbar_init(&simulator->mmBar);
 
     assembler_init(&simulator->assembler,
                    std::string(simulator->user_options.ELF),
                    simulator->user_options.from_elf);
     simulator->assembler.user_options = &simulator->user_options;
+    simulator->assembler.mmBar = &simulator->mmBar;
+
+    if (simulator->user_options.input_from_file) {
+        load_input(simulator);
+    }
+
+    simulator->current_input = 0;
 }
 
 #define get_opcode(bin) (bin >> 26)
+
+std::string get_input(Simulator *simulator) {
+    if (simulator->current_input >= simulator->inputs.size()) {
+        EXIT_WITH_MSG("[SIM]\t\tFailed to get input from file\n");
+    }
+    return simulator->inputs[simulator->current_input++];
+}
 
 int32_t art_rshift(int x, int n) {
     if (x < 0 && n > 0)
@@ -27,7 +55,7 @@ int32_t art_rshift(int x, int n) {
         return x >> n;
 }
 
-void syscall() {
+void syscall(Simulator *simulator) {
     PRINTF_DEBUG_VERBOSE(verbose,
                          "[SIM]\t\tInvoking system call!\n");
 
@@ -41,42 +69,42 @@ void syscall() {
             break;
         }
 
-        case 2: {
-            // print float
-            PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t[SYSCALL]\tprint float\n");
-            break;
-        }
-
-        case 3: {
-            // print double
-            PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t[SYSCALL]\tprint double\n");
-            break;
-        }
-
         case 4: {
             // print string
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t[SYSCALL]\tprint string\n");
+            uint32_t _s = register_file[a0];
+            char c;
+            while ((c = mmbar_read(&simulator->mmBar, _s)) != '\0') {
+                printf("%c", c);
+            }
             break;
         }
 
         case 5: {
             // read int
-            break;
-        }
+            if (simulator->user_options.input_from_file) {
+                PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tread int (from input file)\n");
+                int n = arbstoi(get_input(simulator));
+                register_file[v0] = n;
+            } else {
+                PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tread int (from stdin)\n");
+                int n;
+                std::cin >> n;
+                register_file[v0] = n;
+            }
 
-        case 6: {
-            // read float
-            break;
-        }
-
-        case 7: {
-            // read double
             break;
         }
 
         case 8: {
             // read string
+            if (simulator->user_options.input_from_file) {
+                PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tread string (from input file)\n");
+
+            } else {
+                PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tread string (from stdin)\n");
+            }
             break;
         }
 
@@ -123,8 +151,8 @@ void syscall() {
         }
 
         case 17: {
-            // exit
-            break;
+            // exit2
+            exit(register_file[a0]);
         }
 
         default: {
@@ -136,7 +164,7 @@ void syscall() {
 }
 
 bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
-#define get_funct(bin) (bin & 0x1F)
+#define get_funct(bin) (bin & 0x3F)
 #define get_rs(bin) ((bin >> 21) & 0x1F)
 #define get_rt(bin) ((bin >> 16) & 0x1F)
 #define get_rd(bin) ((bin >> 11) & 0x1F)
@@ -200,31 +228,31 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             register_file[rd] = art_rshift(register_file[rt], register_file[rs]);
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t\t[RC]\tExecution: srav %d, %d, %d(%d)\n",
-                                 rd, rt, rs);
+                                 rd, rt, rs, register_file[rs]);
             break;
         }
 
         case 8: {
             // jr
-            simulator->pc = register_file[rs];
+            simulator->pc = (register_file[rs] << 2) - 4;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: jr %d(%d)\n", rs, register_file[rs]);
+                                 "[SIM]\t\t[RC]\tExecution: jr %d(%d)\n", rs, register_file[rs] << 2);
             break;
         }
 
         case 9: {
             // jalr
             register_file[rd] = simulator->pc + 4;
-            simulator->pc = register_file[rs];
+            simulator->pc = (register_file[rs] << 2) - 4;
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t\t[RC]\tExecution: jalr %d(%d), %d(%d)\n",
-                                 rs, register_file[rs], rd, register_file[rd]);
+                                 rs, register_file[rs] << 2, rd, register_file[rd]);
             break;
         }
 
         case 12: {
             // syscall
-            // TODO: to implement
+            syscall(simulator);
             break;
         }
 
@@ -481,8 +509,8 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
 }
 
 bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
-#define get_rs(bin) ((bin >> 26) & 0x1F)
-#define get_rt(bin) ((bin >> 21) & 0x1F)
+#define get_rs(bin) ((bin >> 21) & 0x1F)
+#define get_rt(bin) ((bin >> 16) & 0x1F)
 #define get_imm(bin) ((int16_t)(bin & 0xFFFF))
 
     int16_t imm = get_imm(bin);
@@ -494,7 +522,7 @@ bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
         case 0: {
             // bltz
             if (register_file[rs] < 0)
-                simulator->pc += imm;
+                simulator->pc += imm - 4;
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t\t[RBT]\tExecution: bltz %d(%d), %d\n",
                                  rs, register_file[rs], imm);
@@ -504,7 +532,7 @@ bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
         case 1: {
             // bgez
             if (register_file[rs] >= 0)
-                simulator->pc += imm;
+                simulator->pc += imm - 4;
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t\t[RBT]\tExecution: bgez %d(%d), %d\n",
                                  rs, register_file[rs], imm);
@@ -555,7 +583,7 @@ bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
             // bltzal
             register_file[ra] = simulator->pc + 4;
             if (register_file[rs] < 0)
-                simulator->pc += imm;
+                simulator->pc += imm - 4;
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t\t[RBT]\tExecution: bltzal %d(%d), %d\n",
                                  rs, register_file[rs], imm);
@@ -566,7 +594,7 @@ bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
             // bgezal
             register_file[ra] = simulator->pc + 4;
             if (register_file[rs] >= 0)
-                simulator->pc += imm;
+                simulator->pc += imm - 4;
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t\t[RBT]\tExecution: bgezal %d(%d), %d\n",
                                  rs, register_file[rs], imm);
@@ -600,9 +628,9 @@ bool decode(Simulator *simulator, uint32_t b) {
         case 0x2: {
             // j target
             uint32_t offset = b & 0x3FFFFFF;
-            simulator->pc = offset;
+            simulator->pc = (offset << 2) - 4;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: j %d\n", offset);
+                                 "[SIM]\t\t[D]\tExecution: j %d\n", offset << 2);
             break;
         }
 
@@ -610,14 +638,14 @@ bool decode(Simulator *simulator, uint32_t b) {
             // jal target
             register_file[ra] = simulator->pc + 4;
             uint32_t offset = b & 0x3FFFFFF;
-            simulator->pc = offset;
+            simulator->pc = (offset << 2) - 4;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: jal %d\n", offset);
+                                 "[SIM]\t\t[D]\tExecution: jal %d\n", offset << 2);
             break;
         }
 
-#define get_rs(bin) ((bin >> 26) & 0x1F)
-#define get_rt(bin) ((bin >> 21) & 0x1F)
+#define get_rs(bin) ((bin >> 21) & 0x1F)
+#define get_rt(bin) ((bin >> 16) & 0x1F)
 #define get_imm(bin) ((int16_t)(bin & 0xFFFF))
 
         case 0x4: {
@@ -627,7 +655,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             int16_t imm = get_imm(b);
 
             if (register_file[rs] == register_file[rt])
-                simulator->pc += imm;
+                simulator->pc += imm - 4;
 
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t\t[D]\tExecution: beq %d(%d), %d(%d), %d\n",
@@ -642,7 +670,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             int16_t imm = get_imm(b);
 
             if (register_file[rs] != register_file[rt])
-                simulator->pc += imm;
+                simulator->pc += imm - 4;
 
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t\t[D]\tExecution: bne %d(%d), %d(%d), %d\n",
@@ -657,7 +685,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             int16_t imm = get_imm(b);
 
             if (register_file[rs] <= 0)
-                simulator->pc += imm;
+                simulator->pc += imm - 4;
 
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t\t[D]\tExecution: blez %d(%d), %d\n",
@@ -671,7 +699,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             int16_t imm = get_imm(b);
 
             if (register_file[rs] > 0)
-                simulator->pc += imm;
+                simulator->pc += imm - 4;
 
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t\t[D]\tExecution: bgtz %d(%d), %d\n",
@@ -689,7 +717,6 @@ bool decode(Simulator *simulator, uint32_t b) {
             if ((result & ~(0xFFFFFFFF)) != 0) {
                 EXIT_WITH_MSG("OVERFLOW: addition result overflow!\n");
             }
-
             register_file[rt] = (int32_t) result;
 
             PRINTF_DEBUG_VERBOSE(verbose,
@@ -1001,7 +1028,6 @@ bool decode(Simulator *simulator, uint32_t b) {
 
 void __simulator_exec_init(Simulator *simulator) {
     simulator->pc = MEM_TEXT_START;
-    mmbar_init(&simulator->mmBar);
     mmbar_load_text(&simulator->mmBar, simulator->bin);
     memset(register_file, 0, sizeof(uint32_t) * REG_NUM);
 }

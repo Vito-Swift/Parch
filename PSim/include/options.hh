@@ -22,6 +22,7 @@
 typedef struct {
     char *ELF;
     char *ASM;
+    char *input_file;
     bool from_elf;
     bool from_std_in;
     bool from_asm;
@@ -30,6 +31,7 @@ typedef struct {
     bool function_only;
     bool enable_hazard;
     bool enable_OoOE;
+    bool input_from_file;
 } Options;
 
 extern bool verbose;

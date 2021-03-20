@@ -48,4 +48,6 @@ uint16_t mmbar_readu16(MMBar *mmBar, uint32_t addr);
 
 uint32_t mmbar_readu32(MMBar *mmBar, uint32_t addr);
 
+void mmbar_load_static_u8(MMBar* mmBar, uint8_t e);
+
 #endif //PARCH_MMBAR_HH

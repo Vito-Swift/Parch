@@ -19,6 +19,8 @@ struct Simulator {
     Assembler assembler;
     MMBar mmBar;
     Options user_options;
+    std::vector<std::string> inputs;
+    uint32_t current_input;
     std::vector<uint32_t> bin;
     uint32_t pc;
 };

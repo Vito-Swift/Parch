@@ -50,6 +50,7 @@ static inline void copy_opt(char **str, char *optarg) {
 
 enum opt_types {
     OP_ELF = 1,
+    OP_INPUT_FILE,
     OP_VERBOSE,
     OP_FUNCTION_ONLY,
     OP_HAZARD,
@@ -59,13 +60,14 @@ enum opt_types {
 };
 
 static struct option parch_long_opts[] = {
-        {"ELF",           required_argument, 0, OP_ELF},
-        {"verbose",       no_argument,       0, OP_VERBOSE},
-        {"function_only", no_argument,       0, OP_FUNCTION_ONLY},
-        {"hazard_sim",    no_argument,       0, OP_HAZARD},
-        {"OoOE_sim",      no_argument,       0, OP_OOOE},
-        {"from_std_in",   no_argument,       0, OP_STDIN},
-        {"full_flow",     no_argument,       0, OP_FULL_FLOW},
+        {"ELF", required_argument, 0, OP_ELF},
+        {"input_file", required_argument, 0, OP_INPUT_FILE},
+        {"verbose", no_argument, 0, OP_VERBOSE},
+        {"function_only", no_argument, 0, OP_FUNCTION_ONLY},
+        {"hazard_sim", no_argument, 0, OP_HAZARD},
+        {"OoOE_sim", no_argument, 0, OP_OOOE},
+        {"from_std_in", no_argument, 0, OP_STDIN},
+        {"full_flow", no_argument, 0, OP_FULL_FLOW},
 };
 
 void options_init(Options *options) {
@@ -142,6 +144,11 @@ void options_parse(Options *options, int argc, char **argv) {
             case OP_ELF:
                 copy_opt(&options->ELF, optarg);
                 options->from_elf = true;
+                break;
+
+            case OP_INPUT_FILE:
+                copy_opt(&options->input_file, optarg);
+                options->input_from_file = true;
                 break;
 
             case OP_STDIN:
