@@ -27,6 +27,114 @@ int32_t art_rshift(int x, int n) {
         return x >> n;
 }
 
+void syscall() {
+    PRINTF_DEBUG_VERBOSE(verbose,
+                         "[SIM]\t\tInvoking system call!\n");
+
+    switch (register_file[v0]) {
+
+        case 1: {
+            // print int
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t[SYSCALL]\tprint int\n");
+            printf("%d", register_file[a0]);
+            break;
+        }
+
+        case 2: {
+            // print float
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t[SYSCALL]\tprint float\n");
+            break;
+        }
+
+        case 3: {
+            // print double
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t[SYSCALL]\tprint double\n");
+            break;
+        }
+
+        case 4: {
+            // print string
+            break;
+        }
+
+        case 5: {
+            // read int
+            break;
+        }
+
+        case 6: {
+            // read float
+            break;
+        }
+
+        case 7: {
+            // read double
+            break;
+        }
+
+        case 8: {
+            // read string
+            break;
+        }
+
+        case 9: {
+            // sbrk
+            break;
+        }
+
+        case 10: {
+            // exit
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t[SYSCALL]\texit\n");
+            exit(0);
+        }
+
+        case 11: {
+            // print char
+            break;
+        }
+
+        case 12: {
+            // read char
+            break;
+        }
+
+        case 13: {
+            // open
+            break;
+        }
+
+        case 14: {
+            // read
+            break;
+        }
+
+        case 15: {
+            // write
+            break;
+        }
+
+        case 16: {
+            // close
+            break;
+        }
+
+        case 17: {
+            // exit
+            break;
+        }
+
+        default: {
+            PRINTF_ERR_STAMP("[SIM]\t[SYSCALL]\tUnknown system call: %d\n", register_file[v0]);
+            break;
+        }
+
+    }
+}
+
 bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
 #define get_funct(bin) (bin & 0x1F)
 #define get_rs(bin) ((bin >> 21) & 0x1F)
@@ -413,7 +521,7 @@ bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
 
         case 9: {
             // tgeiu
-            if ((uint32_t)register_file[rs] >= (uint16_t) imm)
+            if ((uint32_t) register_file[rs] >= (uint16_t) imm)
                 EXIT_WITH_MSG("TRAP: tgeiu %d(%d), %d\n",
                               rs, register_file[rs], imm);
             break;
@@ -429,7 +537,7 @@ bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
 
         case 11: {
             // tltiu
-            if ((uint32_t)register_file[rs] < (uint16_t) imm)
+            if ((uint32_t) register_file[rs] < (uint16_t) imm)
                 EXIT_WITH_MSG("TRAP: tltiu %d(%d), %d\n",
                               rs, register_file[rs], imm);
             break;
@@ -446,7 +554,7 @@ bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
         case 16: {
             // bltzal
             register_file[ra] = simulator->pc + 4;
-            if (register_file[rs] < 0) 
+            if (register_file[rs] < 0)
                 simulator->pc += imm;
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t\t[RBT]\tExecution: bltzal %d(%d), %d\n",
