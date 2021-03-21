@@ -128,15 +128,15 @@ Follows are several examples to launch the program:
 	\footnotesize
 	\item \textbf{Assemble \emph{testfiles/ttassembler/1.in} to its binary:}
 	
-	\textit{\color{red}./psim --ELF testfiles/ttassembler/1.in --output\_bin 1.out}
+	\textit{\color{red}./simulator --ELF testfiles/ttassembler/1.in --output\_bin 1.out}
 	
 	\item \textbf{Assemble and simulate \emph{a-plus-b.asm}}
 	
-	\textit{\color{red}./psim --ELF a-plus-b.asm --input\_file}
+	\textit{\color{red}./simulator --full\_flow --ELF a-plus-b.asm --input\_file}
 	\textit{\color{red}a-plus-b.in --output\_stdout a-plus-b.out}
 		\item \textbf{Assemble and simulate \emph{a-plus-b.asm} (and show the result in stdout)}
 		
-		\textit{\color{red}./psim --ELF a-plus-b.asm --input\_file a-plus-b.in}
+		\textit{\color{red}./simulator --full\_flow --ELF a-plus-b.asm --input\_file a-plus-b.in}
 	\end{enumerate}
 Above commands could be frequently used in the testing. Also, in the last section we will show the corresponding results of these command as well. 
 
