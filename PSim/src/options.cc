@@ -58,12 +58,12 @@ static void print_usage(char *prg_name) {
            "       > ./%s --ELF testfiles/ttassembler/1.in --output_bin 1.out\n"
            "                                               \n"
            "   2) Assemble and simulate a-plus-b.asm       \n"
-           "       > ./%s --ELF a-plus-b.asm --input_file a-plus-b.in\n"
+           "       > ./%s --full_flow --ELF a-plus-b.asm --input_file a-plus-b.in\n"
            "            --output_stdout a-plus-b.out       \n"
            "                                               \n"
            "   3) Assemble and simualte a-plus-b.asm       \n"
            "      (and show the result in stdout)          \n"
-           "       > ./%s --ELF a-plus-b.asm --input_file a-plus-b.in\n"
+           "       > ./%s --full_flow --ELF a-plus-b.asm --input_file a-plus-b.in\n"
            "                                               \n",
            prg_name, prg_name, prg_name, prg_name);
 }
