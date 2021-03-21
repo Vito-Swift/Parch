@@ -27,6 +27,7 @@ syscall
 
 add $a0, $zero, $s1
 jal fibonacci
+
 add $a0, $zero, $v0
 addi $v0, $zero, 1
 syscall

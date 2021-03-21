@@ -674,8 +674,6 @@ bool encode(Assembler *assembler, tokens_t &tokens, uint32_t *bin, uint32_t poin
 
     }
 
-    PRINTF_DEBUG_VERBOSE(verbose,
-                         "Text location: %d\n", (pointat << 2));
     return 1;
 }
 
@@ -782,10 +780,15 @@ bool __catalyze_content(Assembler *assembler) {
                     std::string escaped_string = unescape(match[1]);
                     std::string::const_iterator it = escaped_string.begin();
 
+                    uint32_t ac = 0;
                     while (it != escaped_string.end()) {
+                        ac++;
                         char c = *it++;
                         mmbar_load_static_u8(assembler->mmBar, c);
                     }
+
+                    for (int32_t i = 0; i < 4 - ac % 4; i++)
+                        mmbar_load_static_u8(assembler->mmBar, 0);
 
                     break;
                 }
@@ -797,11 +800,16 @@ bool __catalyze_content(Assembler *assembler) {
                     std::string escaped_string = unescape(match[1]);
                     std::string::const_iterator it = escaped_string.begin();
 
+                    uint32_t ac = 0;
                     while (it != escaped_string.end()) {
+                        ac++;
                         char c = *it++;
                         mmbar_load_static_u8(assembler->mmBar, c);
                     }
                     mmbar_load_static_u8(assembler->mmBar, '\0');
+
+                    for (int32_t i = 0; i < 4 - (ac + 1) % 4; i++)
+                        mmbar_load_static_u8(assembler->mmBar, 0);
 
                     break;
                 }

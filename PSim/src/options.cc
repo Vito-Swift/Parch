@@ -76,6 +76,9 @@ void options_init(Options *options) {
     options->from_std_in = false;
     options->full_flow = false;
     options->from_asm = false;
+    options->function_only = false;
+    options->enable_OoOE = false;
+    options->enable_hazard = false;
 }
 
 void options_free(Options *options) {

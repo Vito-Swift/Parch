@@ -10,7 +10,7 @@
 
 void load_input(Simulator *simulator) {
     if (!isFileExist(simulator->user_options.input_file)) {
-        EXIT_WITH_MSG("[SIM]\t\tFailed to read input file\n");
+        EXIT_WITH_MSG("[SIM]\tFailed to read input file\n");
     }
 
     std::ifstream infile(simulator->user_options.input_file);
@@ -43,7 +43,7 @@ void simulator_init(Simulator *simulator, int argc, char **argv) {
 
 std::string get_input(Simulator *simulator) {
     if (simulator->current_input >= simulator->inputs.size()) {
-        EXIT_WITH_MSG("[SIM]\t\tFailed to get input from file\n");
+        EXIT_WITH_MSG("[SIM]\tFailed to get input from file\n");
     }
     return simulator->inputs[simulator->current_input++];
 }
@@ -57,7 +57,7 @@ int32_t art_rshift(int x, int n) {
 
 void syscall(Simulator *simulator) {
     PRINTF_DEBUG_VERBOSE(verbose,
-                         "[SIM]\t\tInvoking system call!\n");
+                         "[SIM]\tInvoking system call!\n");
 
     switch (register_file[v0]) {
 
@@ -75,7 +75,7 @@ void syscall(Simulator *simulator) {
                                  "[SIM]\t[SYSCALL]\tprint string\n");
             uint32_t _s = register_file[a0];
             char c;
-            while ((c = mmbar_read(&simulator->mmBar, _s)) != '\0') {
+            while ((c = mmbar_read(&simulator->mmBar, _s++)) != '\0') {
                 printf("%c", c);
             }
             break;
@@ -101,15 +101,25 @@ void syscall(Simulator *simulator) {
             // read string
             if (simulator->user_options.input_from_file) {
                 PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tread string (from input file)\n");
-
+                std::string s = get_input(simulator);
+                char cs[s.length()];
+                strcpy(cs, s.c_str());
+                if (register_file[a1] <= s.length())
+                    memcpy((char *) &simulator->mmBar._memory[register_file[a0]], cs, register_file[a1]);
+                else
+                    memcpy((char *) &simulator->mmBar._memory[register_file[a0]], cs, s.length());
             } else {
                 PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tread string (from stdin)\n");
+                fgets((char *) &simulator->mmBar._memory[register_file[a0]], register_file[a1], stdin);
             }
             break;
         }
 
         case 9: {
             // sbrk
+            register_file[v0] = mmbar_allocate(&simulator->mmBar, register_file[a0]);
+            PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tAllocate memory: %d\n",
+                                 register_file[v0]);
             break;
         }
 
@@ -122,36 +132,60 @@ void syscall(Simulator *simulator) {
 
         case 11: {
             // print char
+            PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tprint char");
+            printf("%c", (char) register_file[a0]);
             break;
         }
 
         case 12: {
             // read char
+            if (simulator->user_options.input_from_file) {
+                PRINTF_DEBUG_VERBOSE(verbose,
+                                     "[SIM]\t[SYSCALL]\tread char (from file)\n");
+                char gc = get_input(simulator).c_str()[0];
+                register_file[v0] = gc;
+            } else {
+                PRINTF_DEBUG_VERBOSE(verbose,
+                                     "[SIM]\t[SYSCAL]\tread char (from stdin)\n");
+                register_file[v0] = getchar();
+            }
+
             break;
         }
 
         case 13: {
             // open
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t[SYSCALL]\topen file: %s\n", (char *) register_file[a0]);
+            register_file[a0] = open((char *) register_file[a0], register_file[a1], register_file[a2]);
             break;
         }
 
         case 14: {
             // read
+            PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tread file\n");
+            register_file[a0] = read(register_file[a0], (void *) register_file[a1], register_file[a2]);
             break;
         }
 
         case 15: {
             // write
+            PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\twrite file\n");
+            register_file[a0] = write(register_file[a0], (void *) register_file[a1], register_file[a2]);
             break;
         }
 
         case 16: {
             // close
+            PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tclose file\n");
+            close(register_file[a0]);
             break;
         }
 
         case 17: {
             // exit2
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t[SYSCALL]\texit with signal: %d\n", register_file[a0]);
             exit(register_file[a0]);
         }
 
@@ -182,7 +216,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // sll
             register_file[rd] = (unsigned) register_file[rt] << shamt;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: sll %d, %d, %d\n",
+                                 "[SIM]\t[R]\tExecution: sll %d, %d, %d\n",
                                  rd, rt, shamt);
             break;
         }
@@ -191,7 +225,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // srl
             register_file[rd] = (unsigned) register_file[rt] >> shamt;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: srl %d, %d, %d\n",
+                                 "[SIM]\t[R]\tExecution: srl %d, %d, %d\n",
                                  rd, rt, shamt);
             break;
         }
@@ -200,7 +234,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // sra
             register_file[rd] = art_rshift(register_file[rt], shamt);
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: sra %d, %d, %d\n",
+                                 "[SIM]\t[R]\tExecution: sra %d, %d, %d\n",
                                  rd, rt, shamt);
             break;
         }
@@ -209,7 +243,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // sllv
             register_file[rd] = (unsigned) register_file[rt] << register_file[rs];
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: sllv %d, %d, %d\n",
+                                 "[SIM]\t[R]\tExecution: sllv %d, %d, %d\n",
                                  rd, rt, rs);
             break;
         }
@@ -218,7 +252,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // srlv
             register_file[rd] = (unsigned) register_file[rt] >> register_file[rs];
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution srlv %d, %d, %d\n",
+                                 "[SIM]\t[R]\tExecution srlv %d, %d, %d\n",
                                  rd, rt, rs);
             break;
         }
@@ -227,25 +261,25 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // srav
             register_file[rd] = art_rshift(register_file[rt], register_file[rs]);
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: srav %d, %d, %d(%d)\n",
+                                 "[SIM]\t[R]\tExecution: srav %d, %d, %d(%d)\n",
                                  rd, rt, rs, register_file[rs]);
             break;
         }
 
         case 8: {
             // jr
-            simulator->pc = (register_file[rs] << 2) - 4;
+            simulator->pc = ((register_file[rs] - 1) << 2);
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: jr %d(%d)\n", rs, register_file[rs] << 2);
+                                 "[SIM]\t[R]\tExecution: jr %d(%d)\n", rs, register_file[rs] << 2);
             break;
         }
 
         case 9: {
             // jalr
-            register_file[rd] = simulator->pc + 4;
+            register_file[rd] = (simulator->pc + 4) >> 2;
             simulator->pc = (register_file[rs] << 2) - 4;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: jalr %d(%d), %d(%d)\n",
+                                 "[SIM]\t[R]\tExecution: jalr %d(%d), %d(%d)\n",
                                  rs, register_file[rs] << 2, rd, register_file[rd]);
             break;
         }
@@ -260,7 +294,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // mfhi
             register_file[rd] = register_file[HI];
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: mfhi %d\n", rd);
+                                 "[SIM]\t[R]\tExecution: mfhi %d\n", rd);
             break;
         }
 
@@ -268,7 +302,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // mthi
             register_file[HI] = register_file[rs];
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: mthi %d(%d)\n", rs, register_file[rs]);
+                                 "[SIM]\t[R]\tExecution: mthi %d(%d)\n", rs, register_file[rs]);
             break;
         }
 
@@ -276,7 +310,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // mflo
             register_file[rd] = register_file[LO];
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: mflo %d\n", rd);
+                                 "[SIM]\t[R]\tExecution: mflo %d\n", rd);
             break;
         }
 
@@ -284,7 +318,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // mtlo
             register_file[LO] = register_file[rs];
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: mtlo %d(%d)\n", rs, register_file[rs]);
+                                 "[SIM]\t[R]\tExecution: mtlo %d(%d)\n", rs, register_file[rs]);
             break;
         }
 
@@ -294,7 +328,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             register_file[HI] = result >> 32;
             register_file[LO] = result & 0xFFFFFFFF;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: mult %d(%d), %d(%d)\n",
+                                 "[SIM]\t[R]\tExecution: mult %d(%d), %d(%d)\n",
                                  rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -305,7 +339,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             register_file[HI] = result >> 32;
             register_file[LO] = result & 0xFFFFFFFF;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: multu %d(%d), %d(%d)\n",
+                                 "[SIM]\t[R]\tExecution: multu %d(%d), %d(%d)\n",
                                  rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -321,7 +355,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             register_file[HI] = c;
             register_file[LO] = d;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: div %d(%d), %d(%d)\n",
+                                 "[SIM]\t[R]\tExecution: div %d(%d), %d(%d)\n",
                                  rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -337,7 +371,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             register_file[HI] = c;
             register_file[LO] = d;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: divu %d(%d), %d(%d)\n",
+                                 "[SIM]\t[R]\tExecution: divu %d(%d), %d(%d)\n",
                                  rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -348,11 +382,10 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             if ((result & ~(0xFFFFFFFF)) != 0) {
                 EXIT_WITH_MSG("OVERFLOW: addition result overflow!\n");
             }
-
-            register_file[rd] = (int32_t) result;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: add %d, %d(%d), %d(%d)\n",
-                                 rd, rs, register_file[rs], rt, register_file[rt]);
+                                 "[SIM]\t[R]\tExecution: add %d(%d), %d(%d), %d(%d)\n",
+                                 rd, result, rs, register_file[rs], rt, register_file[rt]);
+            register_file[rd] = (int32_t) result;
             break;
         }
 
@@ -360,7 +393,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // addu
             register_file[rd] = register_file[rs] + register_file[rt];
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: addu %d, %d(%d), %d(%d)\n",
+                                 "[SIM]\t[R]\tExecution: addu %d, %d(%d), %d(%d)\n",
                                  rd, rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -374,7 +407,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
 
             register_file[rd] = (int32_t) result;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: sub %d, %d(%d), %d(%d)\n",
+                                 "[SIM]\t[R]\tExecution: sub %d, %d(%d), %d(%d)\n",
                                  rd, rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -383,7 +416,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // subu
             register_file[rd] = register_file[rs] - register_file[rt];
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: subu %d, %d(%d), %d(%d)\n",
+                                 "[SIM]\t[R]\tExecution: subu %d, %d(%d), %d(%d)\n",
                                  rd, rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -392,7 +425,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // and
             register_file[rd] = register_file[rs] & register_file[rt];
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: and %d, %d(%d), %d(%d)\\n\",\n",
+                                 "[SIM]\t[R]\tExecution: and %d, %d(%d), %d(%d)\\n\",\n",
                                  rd, rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -401,7 +434,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // or
             register_file[rd] = register_file[rs] | register_file[rt];
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: or %d, %d(%d), %d(%d)\\n\",\n",
+                                 "[SIM]\t[R]\tExecution: or %d, %d(%d), %d(%d)\\n\",\n",
                                  rd, rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -410,7 +443,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // xor
             register_file[rd] = register_file[rs] ^ register_file[rt];
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: xor %d, %d(%d), %d(%d)\\n\",\n",
+                                 "[SIM]\t[R]\tExecution: xor %d, %d(%d), %d(%d)\\n\",\n",
                                  rd, rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -419,7 +452,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             // nor
             register_file[rd] = ~(register_file[rs] | register_file[rt]);
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: nor %d, %d(%d), %d(%d)\\n\",\n",
+                                 "[SIM]\t[R]\tExecution: nor %d, %d(%d), %d(%d)\\n\",\n",
                                  rd, rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -429,7 +462,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             if (register_file[rs] < register_file[rt])
                 register_file[rd] = 1;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: slt %d, %d(%d), %d(%d)\\n\",\n",
+                                 "[SIM]\t[R]\tExecution: slt %d, %d(%d), %d(%d)\\n\",\n",
                                  rd, rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -439,7 +472,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
             if ((uint32_t) register_file[rs] < (uint32_t) register_file[rt])
                 register_file[rd] = 1;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RC]\tExecution: sltu %d, %d(%d), %d(%d)\\n\",\n",
+                                 "[SIM]\t[R]\tExecution: sltu %d, %d(%d), %d(%d)\\n\",\n",
                                  rd, rs, register_file[rs], rt, register_file[rt]);
             break;
         }
@@ -493,7 +526,7 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
         }
 
         default: {
-            PRINTF_ERR_STAMP("[SIM]\t[RC]\tUnrecognized funct domain: %d\n", funct);
+            PRINTF_ERR_STAMP("[SIM]\t[R]\tUnrecognized funct domain: %d\n", funct);
             return 0;
         }
 
@@ -506,6 +539,22 @@ bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
 #undef get_shamt
 
     return 1;
+}
+
+void debug_dump_registers() {
+    std::map<std::string, uint32_t> rgm = create_regparse_map();
+    PRINTF_DEBUG_VERBOSE(verbose, "\t\tREG(");
+    uint32_t i = 0;
+    for (std::map<std::string, uint32_t>::reverse_iterator it = rgm.rbegin(); it != rgm.rend(); it++) {
+        i++;
+        printf("%s(%d) = %d, ", it->first.c_str(), it->second, register_file[it->second]);
+        if (i % 8 == 0) {
+            printf("\n");
+            PRINTF_DEBUG_VERBOSE(verbose, "\t\t\t");
+        }
+    }
+    printf(")\n");
+    PRINTF_DEBUG_VERBOSE(verbose, "\n");
 }
 
 bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
@@ -522,9 +571,9 @@ bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
         case 0: {
             // bltz
             if (register_file[rs] < 0)
-                simulator->pc += imm - 4;
+                simulator->pc += 4 * imm;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RBT]\tExecution: bltz %d(%d), %d\n",
+                                 "[SIM]\t[RBT]\tExecution: bltz %d(%d), %d\n",
                                  rs, register_file[rs], imm);
             break;
         }
@@ -532,9 +581,9 @@ bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
         case 1: {
             // bgez
             if (register_file[rs] >= 0)
-                simulator->pc += imm - 4;
+                simulator->pc += 4 * imm;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RBT]\tExecution: bgez %d(%d), %d\n",
+                                 "[SIM]\t[RBT]\tExecution: bgez %d(%d), %d\n",
                                  rs, register_file[rs], imm);
             break;
         }
@@ -581,22 +630,22 @@ bool __decode_branch_trap(Simulator *simulator, uint32_t bin) {
 
         case 16: {
             // bltzal
-            register_file[ra] = simulator->pc + 4;
+            register_file[ra] = (simulator->pc + 4) >> 2;
             if (register_file[rs] < 0)
-                simulator->pc += imm - 4;
+                simulator->pc += 4 * imm;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RBT]\tExecution: bltzal %d(%d), %d\n",
+                                 "[SIM]\t[RBT]\tExecution: bltzal %d(%d), %d\n",
                                  rs, register_file[rs], imm);
             break;
         }
 
         case 17: {
             // bgezal
-            register_file[ra] = simulator->pc + 4;
+            register_file[ra] = (simulator->pc + 4) >> 2;
             if (register_file[rs] >= 0)
-                simulator->pc += imm - 4;
+                simulator->pc += 4 * imm;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[RBT]\tExecution: bgezal %d(%d), %d\n",
+                                 "[SIM]\t[RBT]\tExecution: bgezal %d(%d), %d\n",
                                  rs, register_file[rs], imm);
             break;
         }
@@ -630,17 +679,17 @@ bool decode(Simulator *simulator, uint32_t b) {
             uint32_t offset = b & 0x3FFFFFF;
             simulator->pc = (offset << 2) - 4;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: j %d\n", offset << 2);
+                                 "[SIM]\t[D]\tExecution: j %d\n", offset << 2);
             break;
         }
 
         case 0x3: {
             // jal target
-            register_file[ra] = simulator->pc + 4;
+            register_file[ra] = (simulator->pc >> 2) + 1;
             uint32_t offset = b & 0x3FFFFFF;
             simulator->pc = (offset << 2) - 4;
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: jal %d\n", offset << 2);
+                                 "[SIM]\t[D]\tExecution: jal %d\n", offset << 2);
             break;
         }
 
@@ -655,10 +704,10 @@ bool decode(Simulator *simulator, uint32_t b) {
             int16_t imm = get_imm(b);
 
             if (register_file[rs] == register_file[rt])
-                simulator->pc += imm - 4;
+                simulator->pc += 4 * imm;
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: beq %d(%d), %d(%d), %d\n",
+                                 "[SIM]\t[D]\tExecution: beq %d(%d), %d(%d), %d\n",
                                  rs, register_file[rs], rt, register_file[rt], imm);
             break;
         }
@@ -670,10 +719,10 @@ bool decode(Simulator *simulator, uint32_t b) {
             int16_t imm = get_imm(b);
 
             if (register_file[rs] != register_file[rt])
-                simulator->pc += imm - 4;
+                simulator->pc += 4 * imm;
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: bne %d(%d), %d(%d), %d\n",
+                                 "[SIM]\t[D]\tExecution: bne %d(%d), %d(%d), %d\n",
                                  rs, register_file[rs], rt, register_file[rt], imm);
 
             break;
@@ -685,10 +734,10 @@ bool decode(Simulator *simulator, uint32_t b) {
             int16_t imm = get_imm(b);
 
             if (register_file[rs] <= 0)
-                simulator->pc += imm - 4;
+                simulator->pc += 4 * imm;
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: blez %d(%d), %d\n",
+                                 "[SIM]\t[D]\tExecution: blez %d(%d), %d\n",
                                  rs, register_file[rs], imm);
             break;
         }
@@ -699,10 +748,10 @@ bool decode(Simulator *simulator, uint32_t b) {
             int16_t imm = get_imm(b);
 
             if (register_file[rs] > 0)
-                simulator->pc += imm - 4;
+                simulator->pc += 4 * imm;
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: bgtz %d(%d), %d\n",
+                                 "[SIM]\t[D]\tExecution: bgtz %d(%d), %d\n",
                                  rs, register_file[rs], imm);
             break;
         }
@@ -720,7 +769,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             register_file[rt] = (int32_t) result;
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: addi %d, %d(%d), %d\n",
+                                 "[SIM]\t[D]\tExecution: addi %d, %d(%d), %d\n",
                                  rt, rs, register_file[rs], imm);
             break;
         }
@@ -734,7 +783,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             register_file[rt] = register_file[rs] + imm;
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: addiu %d, %d(%d), %d\n",
+                                 "[SIM]\t[D]\tExecution: addiu %d, %d(%d), %d\n",
                                  rt, rs, register_file[rs], imm);
             break;
         }
@@ -747,10 +796,12 @@ bool decode(Simulator *simulator, uint32_t b) {
 
             if (register_file[rs] < imm)
                 register_file[rt] = 1;
+            else
+                register_file[rt] = 0;
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: slti %d, %d(%d), %d\n",
-                                 rt, rs, register_file[rs], imm);
+                                 "[SIM]\t[D]\tExecution: slti %d(%d), %d(%d), %d\n",
+                                 rt, register_file[rt], rs, register_file[rs], imm);
             break;
         }
 
@@ -762,9 +813,11 @@ bool decode(Simulator *simulator, uint32_t b) {
 
             if ((uint32_t) register_file[rs] < (uint16_t) imm)
                 register_file[rt] = 1;
+            else
+                register_file[rt] = 0;
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: sltiu %d, %d(%d), %d\n",
+                                 "[SIM]\t[D]\tExecution: sltiu %d, %d(%d), %d\n",
                                  rt, rs, register_file[rs], imm);
             break;
         }
@@ -778,7 +831,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             register_file[rt] = register_file[rs] & imm;
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: andi %d, %d(%d), %d\n",
+                                 "[SIM]\t[D]\tExecution: andi %d, %d(%d), %d\n",
                                  rt, rs, register_file[rs], imm);
             break;
         }
@@ -792,7 +845,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             register_file[rt] = register_file[rs] | imm;
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: ori %d, %d(%d), %d\n",
+                                 "[SIM]\t[D]\tExecution: ori %d, %d(%d), %d\n",
                                  rt, rs, register_file[rs], imm);
             break;
         }
@@ -806,7 +859,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             register_file[rt] = register_file[rs] ^ imm;
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: xori %d, %d(%d), %d\n",
+                                 "[SIM]\t[D]\tExecution: xori %d, %d(%d), %d\n",
                                  rt, rs, register_file[rs], imm);
             break;
         }
@@ -819,7 +872,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             register_file[rt] = (imm << 16);
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: lui %d, %d\n",
+                                 "[SIM]\t[D]\tExecution: lui %d, %d\n",
                                  rt, imm);
             break;
         }
@@ -828,12 +881,12 @@ bool decode(Simulator *simulator, uint32_t b) {
             // lb
             uint32_t rs = get_rs(b);
             uint32_t rt = get_rt(b);
-            uint16_t imm = (uint16_t) get_imm(b);
+            int16_t imm = get_imm(b);
 
             register_file[rt] = (int8_t) mmbar_read(&simulator->mmBar, imm + register_file[rs]);
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: lb %d, %d[%d(%d)]\n",
+                                 "[SIM]\t[D]\tExecution: lb %d, %d[%d(%d)]\n",
                                  rt, imm, rs, register_file[rs]);
             break;
         }
@@ -842,12 +895,12 @@ bool decode(Simulator *simulator, uint32_t b) {
             // lh
             uint32_t rs = get_rs(b);
             uint32_t rt = get_rt(b);
-            uint16_t imm = (uint16_t) get_imm(b);
+            int16_t imm = get_imm(b);
 
             register_file[rt] = (int16_t) mmbar_readu16(&simulator->mmBar, imm + register_file[rs]);
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: lh %d, %d[%d(%d)]\n",
+                                 "[SIM]\t[D]\tExecution: lh %d, %d[%d(%d)]\n",
                                  rt, imm, rs, register_file[rs]);
             break;
         }
@@ -856,7 +909,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             // lwl
             uint32_t rs = get_rs(b);
             uint32_t rt = get_rt(b);
-            uint16_t imm = (uint16_t) get_imm(b);
+            int16_t imm = get_imm(b);
             uint16_t addr = imm + register_file[rs];
 
             uint32_t mmc = 4 - addr % 4;
@@ -869,7 +922,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             register_file[rt] = (result) & (~mask & register_file[rt]);
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: lwl %d, %d[%d(%d)]\n",
+                                 "[SIM]\t[D]\tExecution: lwl %d, %d[%d(%d)]\n",
                                  rt, imm, rs, register_file[rs]);
             break;
         }
@@ -878,12 +931,12 @@ bool decode(Simulator *simulator, uint32_t b) {
             // lw
             uint32_t rs = get_rs(b);
             uint32_t rt = get_rt(b);
-            uint16_t imm = (uint16_t) get_imm(b);
+            int16_t imm = get_imm(b);
 
-            register_file[rt] = mmbar_readu32(&simulator->mmBar, imm + register_file[rs]);
+            register_file[rt] = (int32_t) mmbar_readu32(&simulator->mmBar, imm + register_file[rs]);
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: lw %d, %d[%d(%d)]\n",
-                                 rt, imm, rs, register_file[rs]);
+                                 "[SIM]\t[D]\tExecution: lw %d, %d[%d(%d)], (%d)\n",
+                                 rt, imm, rs, register_file[rs], register_file[rt]);
             break;
         }
 
@@ -891,11 +944,11 @@ bool decode(Simulator *simulator, uint32_t b) {
             // lbu
             uint32_t rs = get_rs(b);
             uint32_t rt = get_rt(b);
-            uint16_t imm = (uint16_t) get_imm(b);
+            int16_t imm = get_imm(b);
 
             register_file[rt] = (unsigned) mmbar_readu16(&simulator->mmBar, imm + register_file[rs]);
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: lbu %d, %d[%d(%d)]\n",
+                                 "[SIM]\t[D]\tExecution: lbu %d, %d[%d(%d)]\n",
                                  rt, imm, rs, register_file[rs]);
             break;
         }
@@ -904,12 +957,12 @@ bool decode(Simulator *simulator, uint32_t b) {
             // lhu
             uint32_t rs = get_rs(b);
             uint32_t rt = get_rt(b);
-            uint16_t imm = (uint16_t) get_imm(b);
+            int16_t imm = get_imm(b);
 
             register_file[rt] = (uint16_t) mmbar_readu16(&simulator->mmBar, imm + register_file[rs]);
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: lhu %d, %d[%d(%d)]\n",
+                                 "[SIM]\t[D]\tExecution: lhu %d, %d[%d(%d)]\n",
                                  rt, imm, rs, register_file[rs]);
             break;
         }
@@ -918,7 +971,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             // lwr
             uint32_t rs = get_rs(b);
             uint32_t rt = get_rt(b);
-            uint16_t imm = (uint16_t) get_imm(b);
+            int16_t imm = get_imm(b);
             uint16_t addr = imm + register_file[rs];
 
             uint32_t mmc = addr % 4;
@@ -931,7 +984,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             register_file[rt] = (result) & (~mask & register_file[rt]);
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: lwr %d, %d[%d(%d)]\n",
+                                 "[SIM]\t[D]\tExecution: lwr %d, %d[%d(%d)]\n",
                                  rt, imm, rs, register_file[rs]);
             break;
         }
@@ -940,11 +993,11 @@ bool decode(Simulator *simulator, uint32_t b) {
             // sb
             uint32_t rs = get_rs(b);
             uint32_t rt = get_rt(b);
-            uint16_t imm = (uint16_t) get_imm(b);
+            int16_t imm = get_imm(b);
             mmbar_write(&simulator->mmBar, imm + register_file[rs], 0xFF & register_file[rt]);
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: sb %d(%d), %d[%d(%d)]\n",
+                                 "[SIM]\t[D]\tExecution: sb %d(%d), %d[%d(%d)]\n",
                                  rt, register_file[rt], imm, rs, register_file[rs]);
             break;
         }
@@ -953,11 +1006,11 @@ bool decode(Simulator *simulator, uint32_t b) {
             // sh
             uint32_t rs = get_rs(b);
             uint32_t rt = get_rt(b);
-            uint16_t imm = (uint16_t) get_imm(b);
+            int16_t imm = get_imm(b);
             mmbar_writeu16(&simulator->mmBar, imm + register_file[rs], 0xFFFF & register_file[rt]);
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: sh %d(%d), %d[%d(%d)]\n",
+                                 "[SIM]\t[D]\tExecution: sh %d(%d), %d[%d(%d)]\n",
                                  rt, register_file[rt], imm, rs, register_file[rs]);
             break;
         }
@@ -966,7 +1019,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             // swl
             uint32_t rs = get_rs(b);
             uint32_t rt = get_rt(b);
-            uint16_t imm = (uint16_t) get_imm(b);
+            int16_t imm = get_imm(b);
             uint16_t addr = imm + register_file[rs];
 
             uint32_t mmc = 4 - addr % 4;
@@ -976,7 +1029,7 @@ bool decode(Simulator *simulator, uint32_t b) {
                             0xFF & (register_file[rt] >> (((addr + i) % 4) * 8)));
             }
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: swl %d(%d), %d[%d(%d)]\n",
+                                 "[SIM]\t[D]\tExecution: swl %d(%d), %d[%d(%d)]\n",
                                  rt, register_file[rt], imm, rs, register_file[rs]);
             break;
         }
@@ -985,11 +1038,11 @@ bool decode(Simulator *simulator, uint32_t b) {
             // sw
             uint32_t rs = get_rs(b);
             uint32_t rt = get_rt(b);
-            uint16_t imm = (uint16_t) get_imm(b);
+            int16_t imm = get_imm(b);
             mmbar_writeu32(&simulator->mmBar, imm + register_file[rs], (uint32_t) register_file[rt]);
 
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: sw %d(%d), %d[%d(%d)]\n",
+                                 "[SIM]\t[D]\tExecution: sw %d(%d), %d[%d(%d)]\n",
                                  rt, register_file[rt], imm, rs, register_file[rs]);
             break;
         }
@@ -998,7 +1051,7 @@ bool decode(Simulator *simulator, uint32_t b) {
             // swr
             uint32_t rs = get_rs(b);
             uint32_t rt = get_rt(b);
-            uint16_t imm = (uint16_t) get_imm(b);
+            int16_t imm = get_imm(b);
             uint16_t addr = imm + register_file[rs];
 
             uint32_t mmc = addr % 4;
@@ -1008,7 +1061,7 @@ bool decode(Simulator *simulator, uint32_t b) {
                             0xFF & (register_file[rt] >> (((addr - i) % 4) * 8)));
             }
             PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t\t[D]\tExecution: swr %d(%d), %d[%d(%d)]\n",
+                                 "[SIM]\t[D]\tExecution: swr %d(%d), %d[%d(%d)]\n",
                                  rt, register_file[rt], imm, rs, register_file[rs]);
             break;
         }
@@ -1018,7 +1071,7 @@ bool decode(Simulator *simulator, uint32_t b) {
 #undef get_imm
 
         default: {
-            PRINTF_ERR_STAMP("[SIM]\t\tUnrecognized opcode: %d\n", get_opcode(b));
+            PRINTF_ERR_STAMP("[SIM]\tUnrecognized opcode: %d\n", get_opcode(b));
             return 0;
         }
 
@@ -1030,15 +1083,22 @@ void __simulator_exec_init(Simulator *simulator) {
     simulator->pc = MEM_TEXT_START;
     mmbar_load_text(&simulator->mmBar, simulator->bin);
     memset(register_file, 0, sizeof(uint32_t) * REG_NUM);
+    register_file[sp] = 0x1000000;
 }
 
 void __simulator_exec_run(Simulator *simulator) {
     while (simulator->pc != simulator->mmBar.text_end_addr) {
         uint32_t b = mmbar_readu32(&simulator->mmBar, simulator->pc);
 
+//        PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\tInstruction fetch: %d\n", simulator->pc);
+
         if (!decode(simulator, b)) {
-            EXIT_WITH_MSG("[SIM]\t\tfailed to decode instruction: %s\n\t\texit...\n",
+            EXIT_WITH_MSG("[SIM]\tfailed to decode instruction: %s\n\t\texit...\n",
                           std::bitset<32>(b).to_string().c_str());
+        }
+
+        if (verbose) {
+//            debug_dump_registers();
         }
 
         simulator->pc += 4;

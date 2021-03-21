@@ -17,8 +17,8 @@
 
 #define MEM_SIZE 0x80000000UL
 #define MEM_TEXT_START 0x400000UL
-#define MEM_TEXT_END 0x10000000UL
-#define MEM_STACK_START 0x7FFFFFFFUL
+#define MEM_TEXT_END 0x500000UL
+#define MEM_STACK_START 0xA00000UL
 #define MEM_TOP MEM_STACK_START
 #define MEM_DATA_START MEM_TEXT_END
 
@@ -47,6 +47,8 @@ uint8_t mmbar_read(MMBar *mmBar, uint32_t addr);
 uint16_t mmbar_readu16(MMBar *mmBar, uint32_t addr);
 
 uint32_t mmbar_readu32(MMBar *mmBar, uint32_t addr);
+
+uint32_t mmbar_allocate(MMBar* mmBar, uint32_t size_n);
 
 void mmbar_load_static_u8(MMBar* mmBar, uint8_t e);
 

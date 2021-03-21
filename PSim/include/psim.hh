@@ -10,6 +10,8 @@
 #define PARCH_PSIM_HH
 
 #include <iostream>
+#include <utility>
+#include <fcntl.h>
 
 #include "assembler.hh"
 #include "options.hh"

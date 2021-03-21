@@ -134,10 +134,18 @@ uint32_t mmbar_readu32(MMBar *mmBar, uint32_t addr) {
         return 0x0;
     }
 
-    return (mmBar->_memory[addr + 3] << 24) |
-           (mmBar->_memory[addr + 2] << 16) |
-           (mmBar->_memory[addr + 1] << 8) |
-           (mmBar->_memory[addr]);
+    return ((uint32_t) mmBar->_memory[addr + 3] << 24) |
+           ((uint32_t) mmBar->_memory[addr + 2] << 16) |
+           ((uint32_t) mmBar->_memory[addr + 1] << 8) |
+           ((uint32_t) mmBar->_memory[addr]);
+}
+
+uint32_t mmbar_allocate(MMBar *mmBar, uint32_t size_n) {
+    if (mmBar->dynamic_end_addr + size_n >= register_file[sp])
+        EXIT_WITH_MSG("[MMBAR]\tInsufficient memory to allocate...\n");
+    uint32_t addr = mmBar->dynamic_end_addr;
+    mmBar->dynamic_end_addr += size_n;
+    return addr;
 }
 
 void mmbar_load_static_u8(MMBar *mmBar, uint8_t e) {
@@ -154,6 +162,7 @@ void mmbar_load_text(MMBar *mmBar, std::vector<std::uint32_t> bin) {
 
 void mmbar_init(MMBar *mmBar) {
     mmBar->_memory = SMALLOC(uint8_t, MEM_SIZE);
+    memset(mmBar->_memory, 0, MEM_SIZE);
     mmBar->initialized = true;
     __reset_mmcounters(mmBar);
 }
