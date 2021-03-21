@@ -8,6 +8,11 @@ A MIPS assembler and simulator implemented with C/C++. Submitted as a course pro
 
 In this assignment, we are required to implement an assembler that interprets MIPS assembly files into their corresponding binary executable, as well as a simulator that accepts the executable and simulates the execution of MIPS instructions.
 
+## Implementation Illustration
+
+![assemble_flow.png](https://github.com/Vito-Swift/Parch/raw/master/doc/asm_flow.png "Assembling Flow")
+![simulation_flow.png](https://github.com/Vito-Swift/Parch/raw/master/doc/sim_flow.png "Simulation Flow")
+
 ## Kick Start
 
 To simplify the testing flow for people who do not familiar with the implementation details but wish to test our implementation with minimal efforts, we include an executable in the cmakelists which will be built by default.
@@ -85,8 +90,3 @@ $ ./simulator --full_flow --ELF a-plus-b.asm --input_file a-plus-b.in --output_s
 ```bash
 ./simulator --full_flow --ELF a-plus-b.asm --input_file a-plus-b.in
 ```
-
-## Implementation Illustration
-
-![assemble_flow.png](https://github.com/Vito-Swift/Parch/raw/master/doc/asm_flow.png "Assembling Flow")
-![simulation_flow.png](https://github.com/Vito-Swift/Parch/raw/master/doc/sim_flow.png "Simulation Flow")
