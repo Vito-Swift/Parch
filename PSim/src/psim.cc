@@ -155,23 +155,48 @@ void syscall(Simulator *simulator) {
 
         case 13: {
             // open
-            PRINTF_DEBUG_VERBOSE(verbose,
-                                 "[SIM]\t[SYSCALL]\topen file: %s\n", (char *) register_file[a0]);
-            register_file[a0] = open((char *) register_file[a0], register_file[a1], register_file[a2]);
+            PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\topen file\n");
+            register_file[a0] = open((char *) &simulator->mmBar._memory[register_file[a0]], register_file[a1],
+                                     register_file[a2]);
             break;
         }
 
         case 14: {
             // read
             PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tread file\n");
-            register_file[a0] = read(register_file[a0], (void *) register_file[a1], register_file[a2]);
+            char *tmp_buffer = SMALLOC(char, register_file[a2]);
+
+            register_file[a0] = read(register_file[a0], tmp_buffer, register_file[a2]);
+
+            for (uint32_t i = 0; i < register_file[a2]; i++)
+                mmbar_write(&simulator->mmBar, register_file[a1] + i, tmp_buffer[i]);
+
+            if (verbose) {
+                PRINTF_DEBUG_VERBOSE(verbose,
+                                     "\t\tContent:");
+                for (uint32_t i = 0; i < register_file[a2]; i++)
+                    printf("%c", tmp_buffer[i]);
+            }
+
+            SFREE(tmp_buffer);
             break;
         }
 
         case 15: {
             // write
             PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\twrite file\n");
-            register_file[a0] = write(register_file[a0], (void *) register_file[a1], register_file[a2]);
+            char *tmp_buffer = SMALLOC(char, register_file[a2]);
+            for (uint32_t i = 0; i < register_file[a2]; i++)
+                tmp_buffer[i] = mmbar_read(&simulator->mmBar, register_file[a1] + i);
+
+            if (verbose) {
+                PRINTF_DEBUG_VERBOSE(verbose, "\t\tContent:");
+                for (uint32_t i = 0; i < register_file[a2]; i++)
+                    printf("%c", tmp_buffer[i]);
+            }
+
+            register_file[a0] = write(register_file[a0], tmp_buffer, register_file[a2]);
+            SFREE(tmp_buffer);
             break;
         }
 
