@@ -85,3 +85,8 @@ $ ./simulator --full_flow --ELF a-plus-b.asm --input_file a-plus-b.in --output_s
 ```bash
 ./simulator --full_flow --ELF a-plus-b.asm --input_file a-plus-b.in
 ```
+
+## Implementation Illustration
+
+![assemble_flow.png](https://github.com/Vito-Swift/Parch/raw/master/doc/asm_flow.png "Assembling Flow")
+![simulation_flow.png](https://github.com/Vito-Swift/Parch/raw/master/doc/sim_flow.png "Simulation Flow")
