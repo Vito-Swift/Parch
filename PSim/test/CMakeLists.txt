@@ -1,3 +1,10 @@
+# ========================================================================== #
+# external packages
+# ========================================================================== #
+
+find_package(GTest REQUIRED)
+find_package(Threads REQUIRED)
+
 include_directories(${GTEST_INCLUDE_DIRS})
 
 MESSAGE(${CMAKE_CURRENT_BINARY_DIR})

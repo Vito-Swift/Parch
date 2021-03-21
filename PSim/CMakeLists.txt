@@ -7,12 +7,6 @@ if (NOT DEFINED CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD_REQUIRED true)
 endif ()
 
-# ========================================================================== #
-# external packages
-# ========================================================================== #
-
-find_package(GTest REQUIRED)
-find_package(Threads REQUIRED)
 
 # ========================================================================== #
 # source code
