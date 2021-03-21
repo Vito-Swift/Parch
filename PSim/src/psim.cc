@@ -66,7 +66,7 @@ void syscall(Simulator *simulator) {
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t[SYSCALL]\tprint int\n");
             if (simulator->user_options.require_output_stdout) {
-                std::ofstream of(simulator->user_options.output_stdout);
+                std::ofstream of(simulator->user_options.output_stdout, std::ios_base::app);
                 if (of.is_open()) {
                     of << register_file[a0];
                     of.close();
@@ -84,7 +84,7 @@ void syscall(Simulator *simulator) {
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t[SYSCALL]\tprint float\n");
             if (simulator->user_options.require_output_stdout) {
-                std::ofstream of(simulator->user_options.output_stdout);
+                std::ofstream of(simulator->user_options.output_stdout, std::ios_base::app);
                 if (of.is_open()) {
                     of << f_register_file[f12];
                     of.close();
@@ -122,7 +122,7 @@ void syscall(Simulator *simulator) {
             uint32_t _s = register_file[a0];
 
             if (simulator->user_options.require_output_stdout) {
-                std::ofstream of(simulator->user_options.output_stdout);
+                std::ofstream of(simulator->user_options.output_stdout, std::ios_base::app);
                 if (of.is_open()) {
                     char c;
                     while ((c = mmbar_read(&simulator->mmBar, _s++)) != '\0') {
@@ -225,7 +225,17 @@ void syscall(Simulator *simulator) {
         case 11: {
             // print char
             PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tprint char");
-            printf("%c", (char) register_file[a0]);
+            if (simulator->user_options.require_output_stdout) {
+                std::ofstream of(simulator->user_options.output_stdout, std::ios_base::app);
+                if (of.is_open()) {
+                    of << register_file[a0];
+                    of.close();
+                } else {
+                    EXIT_WITH_MSG("[SIM]\tFailed to open output log: %s\n", simulator->user_options.output_stdout);
+                }
+            } else {
+                printf("%c", (char) register_file[a0]);
+            }
             break;
         }
 
@@ -312,6 +322,7 @@ void syscall(Simulator *simulator) {
         }
 
     }
+
 }
 
 bool __decode_rcluster(Simulator *simulator, uint32_t bin) {
