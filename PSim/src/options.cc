@@ -114,20 +114,20 @@ void options_init(Options *options) {
 }
 
 void options_free(Options *options) {
-    if (options->ELF)
-        free(options->ELF);
-
-    if (options->ASM)
-        free(options->ASM);
-
-    if (options->input_file)
-        free(options->input_file);
-
-    if (options->output_bin)
-        free(options->output_bin);
-
-    if (options->output_stdout)
-        free(options->output_stdout);
+//    if (options->ELF)
+//        free(options->ELF);
+//
+//    if (options->ASM)
+//        free(options->ASM);
+//
+//    if (options->input_file)
+//        free(options->input_file);
+//
+//    if (options->output_bin)
+//        free(options->output_bin);
+//
+//    if (options->output_stdout)
+//        free(options->output_stdout);
 }
 
 bool options_validate(Options *options) {
