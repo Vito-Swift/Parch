@@ -9,3 +9,4 @@
 #include "register.hh"
 
 int32_t register_file[REG_NUM] = {0};
+double f_register_file[2] = {0};

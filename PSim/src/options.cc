@@ -57,6 +57,8 @@ enum opt_types {
     OP_OOOE,
     OP_STDIN,
     OP_FULL_FLOW,
+    OP_OUTPUT_BIN,
+    OP_OUTPUT_STDOUT
 };
 
 static struct option parch_long_opts[] = {
@@ -68,6 +70,8 @@ static struct option parch_long_opts[] = {
         {"OoOE_sim", no_argument, 0, OP_OOOE},
         {"from_std_in", no_argument, 0, OP_STDIN},
         {"full_flow", no_argument, 0, OP_FULL_FLOW},
+        {"output_bin", required_argument, 0, OP_OUTPUT_BIN},
+        {"output_stdout", required_argument, 0, OP_OUTPUT_STDOUT},
 };
 
 void options_init(Options *options) {
@@ -79,10 +83,25 @@ void options_init(Options *options) {
     options->function_only = false;
     options->enable_OoOE = false;
     options->enable_hazard = false;
+    options->require_output_bin = false;
+    options->require_output_stdout = false;
 }
 
 void options_free(Options *options) {
+    if (options->ELF)
+        free(options->ELF);
 
+    if (options->ASM)
+        free(options->ASM);
+
+    if (options->input_file)
+        free(options->input_file);
+
+    if (options->output_bin)
+        free(options->output_bin);
+
+    if (options->output_stdout)
+        free(options->output_stdout);
 }
 
 bool options_validate(Options *options) {
@@ -169,6 +188,16 @@ void options_parse(Options *options, int argc, char **argv) {
 
             case OP_FULL_FLOW:
                 options->full_flow = true;
+                break;
+
+            case OP_OUTPUT_BIN:
+                options->require_output_bin = true;
+                copy_opt(&options->output_bin, optarg);
+                break;
+
+            case OP_OUTPUT_STDOUT:
+                options->require_output_stdout = true;
+                copy_opt(&options->output_stdout, optarg);
                 break;
 
             case '?':

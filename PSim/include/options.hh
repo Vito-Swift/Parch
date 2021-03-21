@@ -23,6 +23,8 @@ typedef struct {
     char *ELF;
     char *ASM;
     char *input_file;
+    char *output_bin;
+    char *output_stdout;
     bool from_elf;
     bool from_std_in;
     bool from_asm;
@@ -32,6 +34,8 @@ typedef struct {
     bool enable_hazard;
     bool enable_OoOE;
     bool input_from_file;
+    bool require_output_bin;
+    bool require_output_stdout;
 } Options;
 
 extern bool verbose;

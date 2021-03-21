@@ -28,7 +28,11 @@ enum register_types {
     sp,                                     // stack pointer
     fp,                                     // frame pointer
     ra,                                     // return address,
-    HI, LO                                  // multiplication / division result
+    HI, LO,                                 // multiplication / division result
+};
+
+enum f_registers {
+    f0, f12                                 // for float point syscall
 };
 
 inline std::map<std::string, uint32_t> create_regparse_map() {
@@ -46,12 +50,11 @@ inline std::map<std::string, uint32_t> create_regparse_map() {
     rgm["sp"] = sp;
     rgm["fp"] = fp;
     rgm["ra"] = ra;
-    rgm["HI"] = HI,
-    rgm["LO"] = LO;
+    rgm["HI"] = HI, rgm["LO"] = LO;
     return rgm;
 }
 
 extern int32_t register_file[REG_NUM];
-
+extern double f_register_file[2];
 
 #endif //PARCH_REGISTER_HH

@@ -65,7 +65,53 @@ void syscall(Simulator *simulator) {
             // print int
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t[SYSCALL]\tprint int\n");
-            printf("%d", register_file[a0]);
+            if (simulator->user_options.require_output_stdout) {
+                std::ofstream of(simulator->user_options.output_stdout);
+                if (of.is_open()) {
+                    of << register_file[a0];
+                    of.close();
+                } else {
+                    EXIT_WITH_MSG("[SIM]\tFailed to open output log: %s\n", simulator->user_options.output_stdout);
+                }
+            } else {
+                printf("%d", register_file[a0]);
+            }
+            break;
+        }
+
+        case 2: {
+            // print float
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t[SYSCALL]\tprint float\n");
+            if (simulator->user_options.require_output_stdout) {
+                std::ofstream of(simulator->user_options.output_stdout);
+                if (of.is_open()) {
+                    of << f_register_file[f12];
+                    of.close();
+                } else {
+                    EXIT_WITH_MSG("[SIM]\tFailed to open output log: %s\n", simulator->user_options.output_stdout);
+                }
+            } else {
+                std::cout << f_register_file[f12];
+            }
+            break;
+        }
+
+        case 3: {
+            // print double
+            PRINTF_DEBUG_VERBOSE(verbose,
+                                 "[SIM]\t[SYSCALL]\tprint double\n");
+            if (simulator->user_options.require_output_stdout) {
+                std::ofstream of(simulator->user_options.output_stdout);
+                if (of.is_open()) {
+                    of << f_register_file[f12];
+                    of.close();
+                } else {
+                    EXIT_WITH_MSG("[SIM]\tFailed to open output log: %s\n", simulator->user_options.output_stdout);
+                }
+            } else {
+                std::cout << f_register_file[f12];
+            }
             break;
         }
 
@@ -74,9 +120,23 @@ void syscall(Simulator *simulator) {
             PRINTF_DEBUG_VERBOSE(verbose,
                                  "[SIM]\t[SYSCALL]\tprint string\n");
             uint32_t _s = register_file[a0];
-            char c;
-            while ((c = mmbar_read(&simulator->mmBar, _s++)) != '\0') {
-                printf("%c", c);
+
+            if (simulator->user_options.require_output_stdout) {
+                std::ofstream of(simulator->user_options.output_stdout);
+                if (of.is_open()) {
+                    char c;
+                    while ((c = mmbar_read(&simulator->mmBar, _s++)) != '\0') {
+                        of << c;
+                    }
+                    of.close();
+                } else {
+                    EXIT_WITH_MSG("[SIM]\tFailed to open output log: %s\n", simulator->user_options.output_stdout);
+                }
+            } else {
+                char c;
+                while ((c = mmbar_read(&simulator->mmBar, _s++)) != '\0') {
+                    printf("%c", c);
+                }
             }
             break;
         }
@@ -92,6 +152,38 @@ void syscall(Simulator *simulator) {
                 int n;
                 std::cin >> n;
                 register_file[v0] = n;
+            }
+
+            break;
+        }
+
+        case 6: {
+            // read float
+            if (simulator->user_options.input_from_file) {
+                PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tread float (from input file)\n");
+                float n = std::stof(get_input(simulator));
+                f_register_file[f0] = n;
+            } else {
+                PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tread float (from stdin)\n");
+                float n;
+                std::cin >> n;
+                f_register_file[f0] = n;
+            }
+
+            break;
+        }
+
+        case 7: {
+            // read double
+            if (simulator->user_options.input_from_file) {
+                PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tread double (from input file)\n");
+                double n = std::stod(get_input(simulator));
+                f_register_file[f0] = n;
+            } else {
+                PRINTF_DEBUG_VERBOSE(verbose, "[SIM]\t[SYSCALL]\tread double (from stdin)\n");
+                double n;
+                std::cin >> n;
+                f_register_file[f0] = n;
             }
 
             break;

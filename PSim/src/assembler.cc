@@ -874,6 +874,23 @@ bool __parse(Assembler *assembler) {
     return true;
 }
 
+bool __finalize(Assembler *assembler) {
+    if (assembler->user_options->require_output_bin) {
+        std::ofstream of(assembler->user_options->output_bin);
+
+        if (of.is_open()) {
+            for (auto b: assembler->bin) {
+                of << std::bitset<32>(b).to_string() << std::endl;
+            }
+            of.close();
+        } else {
+            PRINTF_ERR_STAMP("[ASM]\tFailed to open output bin: %s\n", assembler->user_options->output_bin);
+            return 0;
+        }
+    }
+    return 1;
+}
+
 bool __assembler_exec(Assembler *assembler) {
     bool inText = false, inData = false;
     uint32_t pointat = 0x10000;
@@ -881,6 +898,7 @@ bool __assembler_exec(Assembler *assembler) {
 
     ret = !(ret ^ __catalyze_content(assembler));
     ret = !(ret ^ __parse(assembler));
+    ret = !(ret ^ __finalize(assembler));
 
     return ret;
 }
