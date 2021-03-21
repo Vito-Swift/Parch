@@ -54,4 +54,4 @@ target_include_directories(ttintegration PRIVATE include)
 # functional tests
 # ========================================================================== #
 
-add_subdirectory(test)
+#add_subdirectory(test)
