@@ -131,7 +131,7 @@ void options_free(Options *options) {
 }
 
 bool options_validate(Options *options) {
-    PRINTF_DEBUG_VERBOSE(verbose, "validate");
+    PRINTF_DEBUG_VERBOSE(verbose, "[OPT]\tvalidate options\n");
 
     if (!(options->from_elf) && !(options->from_std_in) && !(options->from_asm)) {
         EXIT_WITH_MSG("[!] neither ELF, stdin or asm file is specified, please specify...\n");
